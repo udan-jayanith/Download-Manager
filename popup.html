@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<!--Icons-->
+		<link
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+			rel="stylesheet" />
+
+		<!--Google fonts-->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+			rel="stylesheet" />
+
+		<!--Styles-->
+		<link rel="stylesheet" href="styles/main.css" />
+		<link rel="stylesheet" href="styles/nav.css" />
+		<link rel="stylesheet" href="styles/resources-tab.css" />
+		<link rel="stylesheet" href="styles/download-tab.css" />
+		<link rel="stylesheet" href="styles/settings-tab.css" />
+	</head>
+	<body>
+		<nav class="flex-center">
+			<div class="nav-item flex-center resources-tab">
+				<i class="fa-solid fa-cloud-arrow-down clickable-ico"></i>Resources
+			</div>
+			<div class="nav-item flex-center downloads-tab">
+				<i class="fa-solid fa-download clickable-ico"></i>Downloads
+			</div>
+			<div class="nav-item flex-cente settings-tab">
+				<i class="fa-solid fa-gear clickable-ico"></i>Settings
+			</div>
+		</nav>
+		<main></main>
+		<template id="resources-tab-template">
+			<div class="resources-container"></div>
+			<div class="resources-item">
+				<i class="fa-solid fa-file"></i>
+				<span class="resources-file-name ellipsis-text">File name.type</span>
+			</div>
+		</template>
+		<template id="downloads-tab-template">
+			<div class="downloaded-item">
+				<div class="downloaded-item-top">
+					<h4 class="download-file-name ellipsis-text">Downloaded file name</h4>
+					<div class="download-item-options">
+						<div title="Copy download link"><i class="fa-solid fa-link clickable-ico"></i></div>
+						<div title="Remove from the history">
+							<i class="fa-solid fa-xmark clickable-ico"></i>
+						</div>
+					</div>
+				</div>
+				<div class="download-item-bottom">
+					<div class="meta-data-container">
+						<label for="estimated-time" title="Downloaded date"
+							><i class="fa-solid fa-calendar"></i
+						></label>
+						<span id="estimated-time">Today</span>
+					</div>
+					<div class="meta-data-container">
+						<label for="estimated-time" title="File size"><i class="fa-solid fa-file"></i></label>
+						<span id="estimated-time">2mb</span>
+					</div>
+				</div>
+			</div>
+			<div class="downloading-item">
+				<div class="downloading-top">
+					<h4 class="download-file-name ellipsis-text">Downloading file name</h4>
+					<div class="download-item-options">
+						<div><i class="fa-solid fa-circle-pause clickable-ico"></i></div>
+						<div title="Copy download link"><i class="fa-solid fa-link clickable-ico"></i></div>
+						<div title="Cancel download"><i class="fa-solid fa-xmark clickable-ico"></i></div>
+					</div>
+				</div>
+				<div class="progress-container">
+					<progress id="file" value="32" max="100" class="downloading-progress">32%</progress>
+				</div>
+				<div class="download-bottom">
+					<div class="meta-data-container">
+						<label for="file">739mb of 1gb</label>
+					</div>
+					<div class="meta-data-container">
+						<label for="estimated-time" title="Estimated time"
+							><i class="fa-solid fa-stopwatch"></i
+						></label>
+						<span id="estimated-time">20min</span>
+					</div>
+					<div class="meta-data-container">
+						<label for="download-speed" title="Download speed"
+							><i class="fa-solid fa-gauge-high"></i
+						></label>
+						<span id="download-speed">240kb</span>
+					</div>
+				</div>
+			</div>
+			<div class="downloads-tab-container">
+				<div class="downloading-item-container"></div>
+				<div class="downloaded-item-container"></div>
+			</div>
+		</template>
+		<template id="settings-tab-template">
+			<div class="settings-container">
+				<div class="settings-item">
+					<h4><i class="fa-solid fa-folder-open"></i> Documents</h4>
+					<label for="extension-names">Extension names</label>
+					<textarea id="extension-names" placeholder="pdf, docx, ppt, pages, ..." class="document-types-input"></textarea>
+					<label for="document-files">Directory</label>
+					<input
+						type="text"
+						placeholder="Relative/path/from/download/folder"
+						id="document-files" 
+						class="documents-dir-input"
+						/>
+				</div>
+				<div class="settings-item">
+					<h4><i class="fa-solid fa-images"></i> Images</h4>
+					<label for="extension-names">Extension names</label>
+					<textarea id="extension-names" placeholder="png, jpg, jpeg, webp, ..." class="image-types-input"></textarea>
+					<label for="image-files">Directory</label>
+					<input type="text" placeholder="Relative/path/from/download/folder" id="image-files"  class="images-dir-input"/>
+				</div>
+				<div class="settings-item">
+					<h4><i class="fa-solid fa-file-audio"></i> Audios</h4>
+					<label for="extension-names">Extension names</label>
+					<textarea id="extension-names" placeholder="mp3, wav, aac, ..." class="audio-types-input"></textarea>
+					<label for="audio-file">Directory</label>
+					<input type="text" placeholder="Relative/path/from/download/folder" id="audio-file" class="audios-dir-input"/>
+				</div>
+				<div class="settings-item">
+					<h4><i class="fa-solid fa-file-video"></i> Videos</h4>
+					<label for="extension-names">Extension names</label>
+					<textarea id="extension-names" placeholder="wmv, mp4, webm, mkv, ..." class="video-types-input"></textarea>
+					<label for="video-files">Directory</label>
+					<input type="text" placeholder="Relative/path/from/download/folder" id="video-files" class="videos-dir-input"/>
+				</div>
+				<div class="settings-item">
+					<h4><i class="fa-solid fa-file-zipper"></i> Compressed</h4>
+					<label for="extension-names">Extension names</label>
+					<textarea id="extension-names" placeholder="zip, rar, bin, exe, iso, ..." class="compressed-types-input"></textarea>
+					<label for="compressed-file">Directory</label>
+					<input
+						type="text"
+						placeholder="Relative/path/from/download/folder"
+						id="compressed-file" 
+						class="compresseds-dir-input"
+						/>
+				</div>
+				<div class="settings-item">
+					<h4><i class="fa-solid fa-folder-closed"></i> Others</h4>
+					<label for="unknow-files">Directory</label>
+					<input type="text" placeholder="Relative/path/from/download/folder" id="unknow-files" class="others-dir-input"/>
+				</div>
+				<div class="settings-item">
+					<label for="on-off-option">Log web requests to the service worker console</label>
+					<select name="on-off-option" id="on-off-option" class="log-web-requests-input">
+						<option value="true">On</option>
+						<option value="false">Off</option>
+					</select>
+				</div>
+				<div class="settings-item">
+					<label for="on-off-option">Use sync settings</label>
+					<select name="on-off-option" id="on-off-option" class="use-sync-settings-input">
+						<option value="true">On</option>
+						<option value="false">Off</option>
+					</select>
+				</div>
+			</div>
+		</template>
+
+		<template id="search-bar-template">
+			<div class="search-bar">
+				<i class="fa-solid fa-magnifying-glass"></i>
+				<input type="text" placeholder="Search" />
+			</div>
+		</template>
+
+		<script src="scripts/main.js"></script>
+		<script src="scripts/resources-tab.js"></script>
+		<script src="scripts/downloads-tab.js"></script>
+		<script src="scripts/settings-tab.js"></script>
+	</body>
+</html>
