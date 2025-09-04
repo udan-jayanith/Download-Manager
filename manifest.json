@@ -4,7 +4,7 @@
 	"version": "0.0.0",
 	"description": "Download manager",
 	"icons": {
-		"48": "assets/favicon.png"
+		"128": "assets/favicon.png"
 	},
 	"action": {
 		"default_popup": "popup.html"

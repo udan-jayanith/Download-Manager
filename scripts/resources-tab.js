@@ -3,17 +3,45 @@ document.querySelector('.resources-tab').addEventListener('click', () => {
 })
 
 async function setResourcesTab() {
+	let settings = await getSettings()
+
 	function render(resourcesContainer, webRequests) {
 		resourcesContainer.querySelectorAll('.resources-item').forEach((el) => {
 			el.remove()
 		})
+
 		let resourcesItem = resourcesTabTemplate.querySelector('.resources-item')
 		webRequests.forEach((el) => {
 			let item = resourcesItem.cloneNode(true)
 			item.querySelector('.resources-file-name').innerText = el.fileName + '.' + el.extensionName
 			item.title = el.extensionName
+			item
+				.querySelector('.fa-solid')
+				.classList.add(getItemIconClassName(settings.mediaTypes, el.extensionName))
 			resourcesContainer.appendChild(item)
 		})
+	}
+
+	function getItemIconClassName(mediaTypes, extensionName) {
+		let keys = Object.keys(mediaTypes)
+		for (let i = 0; i < keys.length; i++) {
+			if (mediaTypes[keys[i]][extensionName] == undefined) {
+				continue
+			}
+			switch (keys[i]) {
+				case 'document':
+					return 'fa-file'
+				case 'compressed':
+					return 'fa-file-zipper'
+				case 'audio':
+					return 'fa-file-audio'
+				case 'video':
+					return 'fa-file-video'
+				case 'image':
+					return 'fa-image'
+			}
+		}
+		return 'fa-circle-question'
 	}
 
 	let resourcesTabTemplate = document.querySelector('#resources-tab-template').content
