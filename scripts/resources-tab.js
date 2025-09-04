@@ -11,6 +11,7 @@ async function setResourcesTab() {
 		webRequests.forEach((el) => {
 			let item = resourcesItem.cloneNode(true)
 			item.querySelector('.resources-file-name').innerText = el.fileName + '.' + el.extensionName
+			item.title = el.extensionName
 			resourcesContainer.appendChild(item)
 		})
 	}
@@ -75,11 +76,6 @@ async function resourcesSearch(query, selectedFilter) {
 				let keys = Object.keys(mediaTypes)
 				let contained = false
 				for (let i = 0; i < keys.length; i++) {
-					console.log(
-						mediaTypes[keys[i]],
-						el.extensionName,
-						mediaTypes[keys[i]][el.extensionName]
-					)
 					if (mediaTypes[keys[i]][el.extensionName]) {
 						contained = true
 						break
