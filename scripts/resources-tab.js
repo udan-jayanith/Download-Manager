@@ -21,21 +21,41 @@ async function setResourcesTab() {
 		.cloneNode(true)
 
 	let searchBarEl = searchBar.get()
-	searchBarEl.querySelector('input').addEventListener('keyup', (e) => {
-		resourcesSearch(getInputValue(e)).then((webRequests) => {
+	let searchBarInput = searchBarEl.querySelector('input')
+	searchBarInput.addEventListener('keyup', (e) => {
+		resourcesSearch(getInputValue(e), selectedFilter.dataset.value).then((webRequests) => {
 			render(resourcesContainer, webRequests)
 		})
 	})
-	resourcesContainer.appendChild(searchBarEl)
+	resourcesContainer.prepend(searchBarEl)
 
-	let webRequests = await getWebRequests()
-	render(resourcesContainer, webRequests)
+	let filterTagsContainer = resourcesContainer.querySelector('.filter-tags-container')
+	let selectedFilter = filterTagsContainer.querySelector('.media-tag')
+	filterTagsContainer.addEventListener('click', (e) => {
+		let tagEl = e.target.closest('.tag')
+		if (tagEl == null) {
+			return
+		}
+		selectedFilter = tagEl
+		filterTagsContainer.querySelectorAll('.tag').forEach((el) => {
+			el.classList.remove('selected-tag')
+		})
+		selectedFilter.classList.add('selected-tag')
+		resourcesSearch(searchBarInput.value, selectedFilter.dataset.value).then((webRequests) => {
+			render(resourcesContainer, webRequests)
+		})
+	})
+	selectedFilter.classList.add('selected-tag')
+
+	resourcesSearch('', selectedFilter.dataset.value).then((webRequests) => {
+		render(resourcesContainer, webRequests)
+	})
 
 	main.set(resourcesContainer)
 }
 
 async function getWebRequests() {
-	let webRequestPort = chrome.runtime.connect({ name: 'webRequests' })
+	let webRequestPort = chrome.runtime.connect({name: 'webRequests'})
 	let webRequests = await new Promise((resolve) => {
 		webRequestPort.onMessage.addListener((settings) => {
 			resolve(settings.webRequest)
@@ -44,14 +64,43 @@ async function getWebRequests() {
 	return webRequests
 }
 
-async function resourcesSearch(query) {
+async function resourcesSearch(query, selectedFilter) {
 	let webRequests = await getWebRequests()
-	if (query.trim() == '') {
-		return webRequests
-	}
 	query = query.toLowerCase()
+	let mediaTypes = (await getSettings()).mediaTypes
 
 	return webRequests.filter((el) => {
+		switch (selectedFilter) {
+			case 'media':
+				let keys = Object.keys(mediaTypes)
+				let contained = false
+				for (let i = 0; i < keys.length; i++) {
+					console.log(
+						mediaTypes[keys[i]],
+						el.extensionName,
+						mediaTypes[keys[i]][el.extensionName]
+					)
+					if (mediaTypes[keys[i]][el.extensionName]) {
+						contained = true
+						break
+					}
+				}
+				if (!contained) {
+					return false
+				}
+				break
+			case 'all':
+				break
+			default:
+				if (mediaTypes[selectedFilter][el.extensionName] == undefined) {
+					return false
+				}
+		}
+
+		if (query.trim() == '') {
+			return true
+		}
+
 		for (let value in el) {
 			let str = el[value]
 			if (typeof str != 'string') {
@@ -66,4 +115,5 @@ async function resourcesSearch(query) {
 	})
 }
 
+document.querySelector('.resources-tab').classList.add('selected-nav-item')
 setResourcesTab()

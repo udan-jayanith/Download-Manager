@@ -24,7 +24,11 @@ nav {
 	cursor: pointer;
 	user-select: none;
 	&:hover {
-		color: var(--primary-color);
 		background-color: #3f414b0a;
 	}
+}
+
+.selected-nav-item {
+	color: var(--primary-color);
+	font-weight: bold;
 }

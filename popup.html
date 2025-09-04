@@ -36,7 +36,17 @@
 		</nav>
 		<main></main>
 		<template id="resources-tab-template">
-			<div class="resources-container"></div>
+			<div class="resources-container">
+				<div class="filter-tags-container">
+					<div class="tag" data-value="all">All</div>
+					<div class="tag media-tag" data-value="media">Media</div>
+					<div class="tag" data-value="audio">Audio</div>
+					<div class="tag" data-value="video">Video</div>
+					<div class="tag" data-value="image">Image</div>
+					<div class="tag" data-value="document">Document</div>
+					<div class="tag" data-value="compressed">Compressed</div>
+				</div>
+			</div>
 			<div class="resources-item">
 				<i class="fa-solid fa-file"></i>
 				<span class="resources-file-name ellipsis-text">File name.type</span>
@@ -106,52 +116,81 @@
 				<div class="settings-item">
 					<h4><i class="fa-solid fa-folder-open"></i> Documents</h4>
 					<label for="extension-names">Extension names</label>
-					<textarea id="extension-names" placeholder="pdf, docx, ppt, pages, ..." class="document-types-input"></textarea>
+					<textarea
+						id="extension-names"
+						placeholder="pdf, docx, ppt, pages, ..."
+						class="document-types-input"></textarea>
 					<label for="document-files">Directory</label>
 					<input
 						type="text"
 						placeholder="Relative/path/from/download/folder"
-						id="document-files" 
-						class="documents-dir-input"
-						/>
+						id="document-files"
+						class="documents-dir-input" />
 				</div>
 				<div class="settings-item">
 					<h4><i class="fa-solid fa-images"></i> Images</h4>
 					<label for="extension-names">Extension names</label>
-					<textarea id="extension-names" placeholder="png, jpg, jpeg, webp, ..." class="image-types-input"></textarea>
+					<textarea
+						id="extension-names"
+						placeholder="png, jpg, jpeg, webp, ..."
+						class="image-types-input"></textarea>
 					<label for="image-files">Directory</label>
-					<input type="text" placeholder="Relative/path/from/download/folder" id="image-files"  class="images-dir-input"/>
+					<input
+						type="text"
+						placeholder="Relative/path/from/download/folder"
+						id="image-files"
+						class="images-dir-input" />
 				</div>
 				<div class="settings-item">
 					<h4><i class="fa-solid fa-file-audio"></i> Audios</h4>
 					<label for="extension-names">Extension names</label>
-					<textarea id="extension-names" placeholder="mp3, wav, aac, ..." class="audio-types-input"></textarea>
+					<textarea
+						id="extension-names"
+						placeholder="mp3, wav, aac, ..."
+						class="audio-types-input"></textarea>
 					<label for="audio-file">Directory</label>
-					<input type="text" placeholder="Relative/path/from/download/folder" id="audio-file" class="audios-dir-input"/>
+					<input
+						type="text"
+						placeholder="Relative/path/from/download/folder"
+						id="audio-file"
+						class="audios-dir-input" />
 				</div>
 				<div class="settings-item">
 					<h4><i class="fa-solid fa-file-video"></i> Videos</h4>
 					<label for="extension-names">Extension names</label>
-					<textarea id="extension-names" placeholder="wmv, mp4, webm, mkv, ..." class="video-types-input"></textarea>
+					<textarea
+						id="extension-names"
+						placeholder="wmv, mp4, webm, mkv, ..."
+						class="video-types-input"></textarea>
 					<label for="video-files">Directory</label>
-					<input type="text" placeholder="Relative/path/from/download/folder" id="video-files" class="videos-dir-input"/>
+					<input
+						type="text"
+						placeholder="Relative/path/from/download/folder"
+						id="video-files"
+						class="videos-dir-input" />
 				</div>
 				<div class="settings-item">
 					<h4><i class="fa-solid fa-file-zipper"></i> Compressed</h4>
 					<label for="extension-names">Extension names</label>
-					<textarea id="extension-names" placeholder="zip, rar, bin, exe, iso, ..." class="compressed-types-input"></textarea>
+					<textarea
+						id="extension-names"
+						placeholder="zip, rar, bin, exe, iso, ..."
+						class="compressed-types-input"></textarea>
 					<label for="compressed-file">Directory</label>
 					<input
 						type="text"
 						placeholder="Relative/path/from/download/folder"
-						id="compressed-file" 
-						class="compresseds-dir-input"
-						/>
+						id="compressed-file"
+						class="compresseds-dir-input" />
 				</div>
 				<div class="settings-item">
 					<h4><i class="fa-solid fa-folder-closed"></i> Others</h4>
 					<label for="unknow-files">Directory</label>
-					<input type="text" placeholder="Relative/path/from/download/folder" id="unknow-files" class="others-dir-input"/>
+					<input
+						type="text"
+						placeholder="Relative/path/from/download/folder"
+						id="unknow-files"
+						class="others-dir-input" />
 				</div>
 				<div class="settings-item">
 					<label for="on-off-option">Log web requests to the service worker console</label>
@@ -178,6 +217,7 @@
 		</template>
 
 		<script src="scripts/main.js"></script>
+		<script src="scripts/nav.js"></script>
 		<script src="scripts/resources-tab.js"></script>
 		<script src="scripts/downloads-tab.js"></script>
 		<script src="scripts/settings-tab.js"></script>
