@@ -207,3 +207,5 @@ chrome.runtime.onConnect.onPort('webRequests', (port) => {
 		webRequest: webRequests.get(currentTabId),
 	})
 })
+
+importScripts('./download.js')
