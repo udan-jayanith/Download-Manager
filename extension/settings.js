@@ -71,6 +71,14 @@ settings.mediaTypes = {
 	},
 }
 
+getSettings().then((res) => {
+	if (res == undefined || Object.keys(res).length == 0) {
+		updateSettings(settings)
+		return
+	}
+	settings = res
+})
+
 async function getSettings() {
 	let syncSettings = await chrome.storage.sync.get(['settings'])
 	if (syncSettings.useSyncSettings) {
@@ -85,13 +93,6 @@ async function updateSettings(settingsObj) {
 	await chrome.storage.local.set({settings: settingsObj})
 	settings = settingsObj
 }
-
-getSettings().then((res) => {
-	if (Object.keys(res).length === 0) {
-		updateSettings(settings)
-	}
-	settings = res
-})
 
 chrome.runtime.onConnect.onPort('get-settings', (port) => {
 	port.postMessage(settings)

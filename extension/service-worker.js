@@ -133,6 +133,21 @@ function getFilenameData(details) {
 	return obj
 }
 
+chrome.runtime.onConnect.ports = {}
+chrome.runtime.onConnect.onPort = function (portName, callback) {
+	chrome.runtime.onConnect.ports[portName] = callback
+}
+
+chrome.runtime.onConnect.addListener(function (port) {
+	let callback = chrome.runtime.onConnect.ports[port.name]
+	if (callback == undefined) {
+		return
+	}
+	callback(port)
+})
+
+importScripts('./settings.js', './download.js')
+
 let webRequests = {
 	arrayCap: 256,
 	webRequestsContainer: new Map(),
@@ -159,25 +174,14 @@ let webRequests = {
 	},
 }
 
-chrome.runtime.onConnect.ports = {}
-chrome.runtime.onConnect.onPort = function (portName, callback) {
-	chrome.runtime.onConnect.ports[portName] = callback
-}
-
-chrome.runtime.onConnect.addListener(function (port) {
-	let callback = chrome.runtime.onConnect.ports[port.name]
-	if (callback == undefined) {
-		return
-	}
-	callback(port)
-})
-
 chrome.webRequest.onHeadersReceived.addListener(
-	(details) => {
+	async (details) => {
 		let obj = getFilenameData(details)
 		if (obj.extensionName == '' && obj.fileName == '') {
 			return
 		}
+		let settings = await getSettings()
+		console.log(settings)
 		if (settings.logWebRequest) {
 			console.log(obj)
 		}
@@ -186,8 +190,6 @@ chrome.webRequest.onHeadersReceived.addListener(
 	{urls: ['<all_urls>']},
 	['responseHeaders']
 )
-
-importScripts('./settings.js')
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 	if (changeInfo.url == undefined) {
@@ -207,5 +209,3 @@ chrome.runtime.onConnect.onPort('webRequests', (port) => {
 		webRequest: webRequests.get(currentTabId),
 	})
 })
-
-importScripts('./download.js')

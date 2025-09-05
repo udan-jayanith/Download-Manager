@@ -7,25 +7,3 @@ chrome.downloads.download({
 
 */
 
-let download = {
-    getNewDownloadId: async function () {
-        let downloadIdObject = (await chrome.storage.local.get(['download-id']))
-        if (Object.keys(downloadIdObject).length == 0) {
-            await chrome.storage.local.set({
-                downloadId: 1
-            })
-            return 0
-        }
-        let downloadId = downloadIdObject.downloadId
-        await chrome.storage.local.set({
-            downloadId: downloadId+1
-        })
-        return downloadId
-    }, 
-	download: function (obj, settings) {
-        
-    },
-}
-
-function sequentialDownload() {}
-function parallelDownload() {}
