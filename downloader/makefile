@@ -5,4 +5,5 @@ build:
 	go build
 
 clean: 
-	rm ./database
+	powershell -Command "rm -r -fo ./download-buffer"
+	powershell -Command "rm -r -fo ./database"

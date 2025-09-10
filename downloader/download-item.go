@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"database/sql"
 	"fmt"
 	"log"
@@ -9,7 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
-	"bufio"
 )
 
 type DownloadStatus int
@@ -88,15 +88,56 @@ func (di *DownloadItem) download() {
 	}
 	defer res.Body.Close()
 
-	rd := bufio.NewReader(res.Body) 
+	rd := bufio.NewReader(res.Body)
 	file := di.newPackage()
 	rd.WriteTo(file)
 	defer file.Close()
+
+	di.save()
 }
 
-//saveAs read packages in order and write to one file named FileName and store it in Dir by creating necessary parent dir.
-// func (di *DownloadItem) saveAs()   {}
-// func (di *DownloadItem) delete ()   {}
+func (di *DownloadItem) save() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Println("Home dir error")
+		log.Fatal(err)
+	}
+
+	fileDir := filepath.Join(homeDir, di.Dir)
+	os.MkdirAll(fileDir, 0775)
+	os.Remove(filepath.Join(fileDir, di.FileName))
+
+	saveFilePath := filepath.Join(fileDir, di.FileName+".DownloadManager")
+	os.Remove(saveFilePath)
+	saveFile, err := os.Create(saveFilePath)
+	if err != nil {
+		log.Println("File creation error")
+		log.Fatal(err)
+	}
+	defer saveFile.Close()
+
+	var Packs int64
+	Sqlite.Execute(func(db *sql.DB) {
+		row := db.QueryRow(fmt.Sprintf(`SELECT Packs FROM downloads WHERE ID = %v LIMIT 1;`, di.ID))
+		err := row.Scan(&Packs)
+		if err != nil {
+			log.Fatal(err)
+		}
+	})
+	downloadItemDir := filepath.Join(os.Getenv("downloadBuffDir"), strconv.Itoa(int(di.ID)))
+	for i := int64(1); i <= Packs; i++ {
+		downloadPackage, err := os.Open(filepath.Join(downloadItemDir, strconv.Itoa(int(i))))
+		if err != nil {
+			log.Fatal(err)
+		}
+		downloadPackage.WriteTo(saveFile)
+		downloadPackage.Close()
+	}
+	saveFile.Close()
+	os.Rename(saveFilePath, filepath.Join(fileDir, di.FileName))
+}
+
+//func (di *DownloadItem) delete() {}
 
 func (di *DownloadItem) newPackage() *os.File {
 	downloadBufferDir := os.Getenv("downloadBuffDir")

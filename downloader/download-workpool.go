@@ -18,6 +18,7 @@ func NewDownloadWorkPool() DownloadWorkPool {
 	}
 	downloads := make(chan DownloadItem, maxDownloadInstances)
 
+	//Set a limit on how many concurrent downloads can run
 	go func() {
 		for downloadItem := range downloads {
 			go downloadItem.download()
