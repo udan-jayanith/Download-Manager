@@ -181,7 +181,6 @@ chrome.webRequest.onHeadersReceived.addListener(
 			return
 		}
 		let settings = await getSettings()
-		console.log(settings)
 		if (settings.logWebRequest) {
 			console.log(obj)
 		}
