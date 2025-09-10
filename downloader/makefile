@@ -1,6 +1,8 @@
-run: go run .
+run: 
+	go run .
 
-build: go build
+build: 
+	go build
 
 clean: 
 	rm ./database

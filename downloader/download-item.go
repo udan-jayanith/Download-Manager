@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -90,15 +89,16 @@ func (di *DownloadItem) download() {
 	defer res.Body.Close()
 
 	rd := bufio.NewReader(res.Body) 
-	w := di.newPackage()
-	rd.WriteTo(w)
+	file := di.newPackage()
+	rd.WriteTo(file)
+	defer file.Close()
 }
 
 //saveAs read packages in order and write to one file named FileName and store it in Dir by creating necessary parent dir.
 // func (di *DownloadItem) saveAs()   {}
 // func (di *DownloadItem) delete ()   {}
 
-func (di *DownloadItem) newPackage() io.Writer {
+func (di *DownloadItem) newPackage() *os.File {
 	downloadBufferDir := os.Getenv("downloadBuffDir")
 	os.MkdirAll(downloadBufferDir, 0775)
 
