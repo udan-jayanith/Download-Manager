@@ -20,6 +20,15 @@ const (
 	Complete
 )
 
+type DownloadItemUpdate struct {
+	DownloadID    int64
+	BytesPerSec   int
+	ContentLength int
+	Length        int
+	EstimatedTime time.Time
+	Status        DownloadStatus
+}
+
 type DownloadItem struct {
 	ID       int64
 	FileName string
@@ -29,6 +38,7 @@ type DownloadItem struct {
 	ContentLength int64
 	DateAndTime   time.Time
 	Status        DownloadStatus
+	Updates       chan DownloadItemUpdate
 }
 
 func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
@@ -38,16 +48,9 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		Dir:         Dir,
 		DateAndTime: time.Now(),
 		Status:      Pending,
+		Updates:     make(chan DownloadItemUpdate, 8),
 	}
 
-	/*
-		ID INTEGER PRIMARY KEY,
-		FileName TEXT NOT NULL,
-		URL TEXT NOT NULL,
-		Dir TEXT NOT NULL,
-		ContentLength INTEGER,
-		DateAndTime TEXT NOT NULL
-	*/
 	Sqlite.Execute(func(db *sql.DB) {
 		results, err := db.Exec(fmt.Sprintf(`
 			INSERT INTO downloads (FileName, URL, Dir, DateAndTime, Packs, Status)
@@ -64,23 +67,23 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		}
 		downloadItem.ID = ID
 	})
+	downloadItem.Updates <- DownloadItemUpdate{
+		Status: Pending,
+	}
 	return downloadItem
-}
-
-func (di *DownloadItem) changeStatus(status DownloadStatus) {
-	Sqlite.Execute(func(db *sql.DB) {
-		_, err := db.Exec(fmt.Sprintf(`
-			UPDATE downloads SET Status = %v WHERE ID = %v	
-		`, int(status), di.ID))
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
 }
 
 func (di *DownloadItem) download() {
 	di.changeStatus(Downloading)
-	defer di.changeStatus(Complete)
+	di.Updates <- DownloadItemUpdate{
+		Status: Downloading,
+	}
+	defer func() {
+		di.Updates <- DownloadItemUpdate{
+			Status: Complete,
+		}
+		di.changeStatus(Complete)
+	}()
 
 	res, err := http.Get(di.URL)
 	if err != nil {
@@ -137,8 +140,6 @@ func (di *DownloadItem) save() {
 	os.Rename(saveFilePath, filepath.Join(fileDir, di.FileName))
 }
 
-//func (di *DownloadItem) delete() {}
-
 func (di *DownloadItem) newPackage() *os.File {
 	downloadBufferDir := os.Getenv("downloadBuffDir")
 	os.MkdirAll(downloadBufferDir, 0775)
@@ -178,4 +179,15 @@ func (di *DownloadItem) newPackage() *os.File {
 		log.Fatal(err)
 	}
 	return file
+}
+
+func (di *DownloadItem) changeStatus(status DownloadStatus) {
+	Sqlite.Execute(func(db *sql.DB) {
+		_, err := db.Exec(fmt.Sprintf(`
+			UPDATE downloads SET Status = %v WHERE ID = %v	
+		`, int(status), di.ID))
+		if err != nil {
+			log.Fatal(err)
+		}
+	})
 }

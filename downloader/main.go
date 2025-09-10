@@ -14,7 +14,7 @@ import (
 
 var (
 	downloadWorkPool = NewDownloadWorkPool()
-	_ = godotenv.Load("./.env")
+	_                = godotenv.Load("./.env")
 )
 
 func main() {
@@ -36,6 +36,12 @@ func main() {
 			log.Fatal(err)
 		}
 	})
+
+	go func() {
+		for update := range downloadWorkPool.Updates {
+			log.Println(update)
+		}
+	}()
 
 	http.HandleFunc("/download", func(w http.ResponseWriter, r *http.Request) {
 		type request struct {

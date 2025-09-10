@@ -8,6 +8,7 @@ import (
 
 type DownloadWorkPool struct {
 	downloads chan DownloadItem
+	Updates   chan DownloadItemUpdate
 }
 
 func NewDownloadWorkPool() DownloadWorkPool {
@@ -16,18 +17,27 @@ func NewDownloadWorkPool() DownloadWorkPool {
 		log.Println("maxDownloadInstances env file error. expected a integer.")
 		log.Fatal(err)
 	}
-	downloads := make(chan DownloadItem, maxDownloadInstances)
+	workPool := DownloadWorkPool{
+		downloads: make(chan DownloadItem, maxDownloadInstances),
+		Updates:   make(chan DownloadItemUpdate),
+	}
 
 	//Set a limit on how many concurrent downloads can run
 	go func() {
-		for downloadItem := range downloads {
+		for downloadItem := range workPool.downloads {
+			go func() {
+				for update := range downloadItem.Updates {
+					workPool.Updates <- update
+					if update.Status == Complete {
+						break
+					}
+				}
+			}()
 			go downloadItem.download()
 		}
 	}()
 
-	return DownloadWorkPool{
-		downloads: downloads,
-	}
+	return workPool
 }
 
 func (dwp *DownloadWorkPool) Download(downloadItem DownloadItem) {
