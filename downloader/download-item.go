@@ -21,12 +21,12 @@ const (
 )
 
 type DownloadItemUpdate struct {
-	DownloadID    int64
-	BytesPerSec   int
-	ContentLength int
-	Length        int
-	EstimatedTime time.Time
-	Status        DownloadStatus
+	DownloadID    int64 `json:"download-id"`
+	BytesPerSec   int `json:"bps"`
+	ContentLength int `json:"content-length"`
+	Length        int `json:"length"`
+	EstimatedTime time.Time `json:"estimated-time"`
+	Status        DownloadStatus `json:"download-status"`
 }
 
 type DownloadItem struct {
@@ -91,15 +91,22 @@ func (di *DownloadItem) download() {
 	}
 	defer res.Body.Close()
 
+	//TODO
 	rd := bufio.NewReader(res.Body)
-	file := di.newPackage()
+	file, tempDir := di.newPackage()
 	rd.WriteTo(file)
 	defer file.Close()
 
-	di.save()
+	di.save(tempDir)
+	file.Close()
+	err = os.RemoveAll(tempDir)
+	if err != nil {
+		log.Println("Temp dir deletion error.")
+		log.Fatal(err)
+	}
 }
 
-func (di *DownloadItem) save() {
+func (di *DownloadItem) save(tempDir string) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Println("Home dir error")
@@ -127,9 +134,8 @@ func (di *DownloadItem) save() {
 			log.Fatal(err)
 		}
 	})
-	downloadItemDir := filepath.Join(os.Getenv("downloadBuffDir"), strconv.Itoa(int(di.ID)))
 	for i := int64(1); i <= Packs; i++ {
-		downloadPackage, err := os.Open(filepath.Join(downloadItemDir, strconv.Itoa(int(i))))
+		downloadPackage, err := os.Open(filepath.Join(tempDir, strconv.Itoa(int(i))))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -140,9 +146,14 @@ func (di *DownloadItem) save() {
 	os.Rename(saveFilePath, filepath.Join(fileDir, di.FileName))
 }
 
-func (di *DownloadItem) newPackage() *os.File {
-	downloadBufferDir := os.Getenv("downloadBuffDir")
-	os.MkdirAll(downloadBufferDir, 0775)
+func (di *DownloadItem) newPackage() (*os.File, string) {
+	tempDir := filepath.Join(os.TempDir(), "DownloadManager")
+	os.Mkdir(tempDir, 0o700)
+	tempDir, err := os.MkdirTemp(tempDir, strconv.Itoa(int(di.ID)))
+	if err != nil {
+		log.Println("Temp dir error.")
+		log.Fatal(err)
+	}
 
 	var Packs int64
 	Sqlite.Execute(func(db *sql.DB) {
@@ -156,11 +167,8 @@ func (di *DownloadItem) newPackage() *os.File {
 		}
 	})
 
-	downloadItemFolder := filepath.Join(downloadBufferDir, strconv.Itoa(int(di.ID)))
-	os.MkdirAll(downloadItemFolder, 0775)
-
 	Packs++
-	downloadItemPack := filepath.Join(downloadItemFolder, strconv.Itoa(int(Packs)))
+	downloadItemPack := filepath.Join(tempDir, strconv.Itoa(int(Packs)))
 	os.Remove(downloadItemPack)
 
 	Sqlite.Execute(func(db *sql.DB) {
@@ -178,7 +186,7 @@ func (di *DownloadItem) newPackage() *os.File {
 		log.Println("newPackage function")
 		log.Fatal(err)
 	}
-	return file
+	return file, tempDir
 }
 
 func (di *DownloadItem) changeStatus(status DownloadStatus) {

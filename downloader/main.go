@@ -8,13 +8,27 @@ import (
 
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	_ "modernc.org/sqlite"
 )
 
+/*
+# TODOS
+* Websockets client.
+* Resume, Pause, Get-downloading, get-downloads endpoints.
+* Password protection.
+* Improve UpdatesHandler marshaling.
+*/
+
 var (
-	downloadWorkPool = NewDownloadWorkPool()
 	_                = godotenv.Load("./.env")
+	downloadWorkPool = NewDownloadWorkPool()
+	updatesHandler   = UpdatesHandler{
+		maxConnections: 8,
+		updatesChan:    downloadWorkPool.Updates,
+		conns:          make(map[*websocket.Conn]struct{}, 1),
+	}
 )
 
 func main() {
@@ -36,12 +50,7 @@ func main() {
 			log.Fatal(err)
 		}
 	})
-
-	go func() {
-		for update := range downloadWorkPool.Updates {
-			log.Println(update)
-		}
-	}()
+	updatesHandler.Handle()
 
 	http.HandleFunc("/download", func(w http.ResponseWriter, r *http.Request) {
 		type request struct {
@@ -58,6 +67,24 @@ func main() {
 
 		downloadItem := NewDownloadItem(req.FileName, req.Dir, req.URL)
 		downloadWorkPool.Download(downloadItem)
+	})
+
+
+	waUpgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	http.HandleFunc("/wa/updates", func(w http.ResponseWriter, r *http.Request) {
+		conn, err := waUpgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		updatesHandler.conns[conn] = struct{}{}
 	})
 
 	http.ListenAndServe(os.Getenv("port"), nil)
