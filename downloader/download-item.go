@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -26,18 +24,18 @@ type DownloadItemUpdate struct {
 	BytesPerSec   int            `json:"bps"`
 	ContentLength int            `json:"content-length"`
 	Length        int            `json:"length"`
-	EstimatedTime time.Duration  `json:"estimated-time"`
+	EstimatedTime int  `json:"estimated-time"`
 	Status        DownloadStatus `json:"download-status"`
 }
 
 func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 	type UpdateJson struct {
-		DownloadID    int     `json:"download-id"`
-		Bps           int     `json:"bps"`
-		ContentLength int     `json:"content-length"`
-		Length        int     `json:"length"`
-		EstimatedTime float64 `json:"estimated-time"`
-		Status        string  `json:"status"`
+		DownloadID    int    `json:"download-id"`
+		Bps           int    `json:"bps"`
+		ContentLength int    `json:"content-length"`
+		Length        int    `json:"length"`
+		EstimatedTime int    `json:"estimated-time"`
+		Status        string `json:"status"`
 	}
 
 	updateJson := UpdateJson{}
@@ -45,8 +43,7 @@ func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 	updateJson.Bps = diu.BytesPerSec
 	updateJson.ContentLength = diu.ContentLength
 	updateJson.Length = diu.Length
-	updateJson.EstimatedTime = diu.EstimatedTime.Seconds()
-
+	updateJson.EstimatedTime = diu.EstimatedTime
 	switch diu.Status {
 	case Pending:
 		updateJson.Status = "pending"
@@ -102,41 +99,6 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		Status:     Pending,
 	}
 	return downloadItem
-}
-
-func (di *DownloadItem) download() {
-	di.changeStatus(Downloading)
-	di.Updates <- DownloadItemUpdate{
-		DownloadID: di.ID,
-		Status:     Downloading,
-	}
-	defer func() {
-		di.Updates <- DownloadItemUpdate{
-			DownloadID: di.ID,
-			Status:     Complete,
-		}
-		di.changeStatus(Complete)
-	}()
-
-	res, err := http.Get(di.URL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer res.Body.Close()
-
-	//TODO
-	rd := bufio.NewReader(res.Body)
-	file, tempDir := di.newPackage()
-	rd.WriteTo(file)
-	defer file.Close()
-
-	di.save(tempDir)
-	file.Close()
-	err = os.RemoveAll(tempDir)
-	if err != nil {
-		log.Println("Temp dir deletion error.")
-		log.Fatal(err)
-	}
 }
 
 func (di *DownloadItem) save(tempDir string) {
