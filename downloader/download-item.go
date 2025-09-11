@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -21,12 +22,41 @@ const (
 )
 
 type DownloadItemUpdate struct {
-	DownloadID    int64 `json:"download-id"`
-	BytesPerSec   int `json:"bps"`
-	ContentLength int `json:"content-length"`
-	Length        int `json:"length"`
-	EstimatedTime time.Time `json:"estimated-time"`
+	DownloadID    int64          `json:"download-id"` //required
+	BytesPerSec   int            `json:"bps"`
+	ContentLength int            `json:"content-length"`
+	Length        int            `json:"length"`
+	EstimatedTime time.Duration  `json:"estimated-time"`
 	Status        DownloadStatus `json:"download-status"`
+}
+
+func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
+	type UpdateJson struct {
+		DownloadID    int     `json:"download-id"`
+		Bps           int     `json:"bps"`
+		ContentLength int     `json:"content-length"`
+		Length        int     `json:"length"`
+		EstimatedTime float64 `json:"estimated-time"`
+		Status        string  `json:"status"`
+	}
+
+	updateJson := UpdateJson{}
+	updateJson.DownloadID = int(diu.DownloadID)
+	updateJson.Bps = diu.BytesPerSec
+	updateJson.ContentLength = diu.ContentLength
+	updateJson.Length = diu.Length
+	updateJson.EstimatedTime = diu.EstimatedTime.Seconds()
+
+	switch diu.Status {
+	case Pending:
+		updateJson.Status = "pending"
+	case Downloading:
+		updateJson.Status = "downloading"
+	case Complete:
+		updateJson.Status = "complete"
+	}
+
+	return json.Marshal(&updateJson)
 }
 
 type DownloadItem struct {
@@ -68,7 +98,8 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		downloadItem.ID = ID
 	})
 	downloadItem.Updates <- DownloadItemUpdate{
-		Status: Pending,
+		DownloadID: downloadItem.ID,
+		Status:     Pending,
 	}
 	return downloadItem
 }
@@ -76,11 +107,13 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 func (di *DownloadItem) download() {
 	di.changeStatus(Downloading)
 	di.Updates <- DownloadItemUpdate{
-		Status: Downloading,
+		DownloadID: di.ID,
+		Status:     Downloading,
 	}
 	defer func() {
 		di.Updates <- DownloadItemUpdate{
-			Status: Complete,
+			DownloadID: di.ID,
+			Status:     Complete,
 		}
 		di.changeStatus(Complete)
 	}()

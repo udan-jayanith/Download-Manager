@@ -15,7 +15,6 @@ import (
 
 /*
 # TODOS
-* Websockets client.
 * Resume, Pause, Get-downloading, get-downloads endpoints.
 * Password protection.
 * Improve UpdatesHandler marshaling.
@@ -25,7 +24,7 @@ var (
 	_                = godotenv.Load("./.env")
 	downloadWorkPool = NewDownloadWorkPool()
 	updatesHandler   = UpdatesHandler{
-		maxConnections: 8,
+		maxConnections: 2,
 		updatesChan:    downloadWorkPool.Updates,
 		conns:          make(map[*websocket.Conn]struct{}, 1),
 	}
@@ -50,25 +49,8 @@ func main() {
 			log.Fatal(err)
 		}
 	})
+
 	updatesHandler.Handle()
-
-	http.HandleFunc("/download", func(w http.ResponseWriter, r *http.Request) {
-		type request struct {
-			FileName string `json:"file-name"`
-			URL      string `json:"url"`
-			Dir      string `json:"dir"`
-		}
-
-		var req request
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		downloadItem := NewDownloadItem(req.FileName, req.Dir, req.URL)
-		downloadWorkPool.Download(downloadItem)
-	})
-
 
 	waUpgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -84,8 +66,48 @@ func main() {
 			log.Println(err)
 			return
 		}
-		updatesHandler.conns[conn] = struct{}{}
+		err = updatesHandler.AddConn(conn)
+		if err != nil {
+			conn.Close()
+		}
 	})
 
+	http.HandleFunc("/download", downloadHandler)
+	http.HandleFunc("/get-downloads", downloadHandler)
+	http.HandleFunc("/get-downloading", downloadHandler)
+	http.HandleFunc("/resume", downloadHandler)
+	http.HandleFunc("/pause", downloadHandler)
+	http.HandleFunc("/remove", downloadHandler)
+
 	http.ListenAndServe(os.Getenv("port"), nil)
+}
+
+func AllowCrossOrigin(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+}
+
+func downloadHandler(w http.ResponseWriter, r *http.Request) {
+	type request struct {
+		FileName string `json:"file-name"`
+		URL      string `json:"url"`
+		Dir      string `json:"dir"`
+		Password string `json:"password"`
+	}
+
+	var req request
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if req.Password != os.Getenv("password") {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	AllowCrossOrigin(w)
+
+	downloadItem := NewDownloadItem(req.FileName, req.Dir, req.URL)
+	downloadWorkPool.Download(downloadItem)
 }
