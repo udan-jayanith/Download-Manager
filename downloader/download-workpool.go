@@ -24,7 +24,9 @@ func NewDownloadWorkPool() DownloadWorkPool {
 
 	//Set a limit on how many concurrent downloads can run
 	go func() {
+		concurrentDownloadsChan := make(chan struct{}, 3)
 		for downloadItem := range workPool.downloads {
+			concurrentDownloadsChan <- struct{}{}
 			go func() {
 				for update := range downloadItem.Updates {
 					workPool.Updates <- update
@@ -33,7 +35,10 @@ func NewDownloadWorkPool() DownloadWorkPool {
 					}
 				}
 			}()
-			go downloadItem.download()
+			go func() {
+				downloadItem.download()
+				<-concurrentDownloadsChan
+			}()
 		}
 	}()
 

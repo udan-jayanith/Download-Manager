@@ -16,3 +16,12 @@ wa.addEventListener('message', (e) => {
 	console.log('Message received.')
 	console.log(e.data)
 })
+
+function numberCount(i, j) {
+	let arr = []
+	while (i <= j) {
+		arr.push(i)
+		i++
+	}
+	return arr
+}

@@ -20,22 +20,24 @@ const (
 )
 
 type DownloadItemUpdate struct {
-	DownloadID    int64          `json:"download-id"` //required
-	BytesPerSec   int            `json:"bps"`
-	ContentLength int            `json:"content-length"`
-	Length        int            `json:"length"`
-	EstimatedTime int  `json:"estimated-time"`
-	Status        DownloadStatus `json:"download-status"`
+	DownloadID     int64          `json:"download-id"` //required
+	BytesPerSec    int            `json:"bps"`
+	ContentLength  int            `json:"content-length"`
+	Length         int            `json:"length"`
+	EstimatedTime  int            `json:"estimated-time"`
+	Status         DownloadStatus `json:"download-status"`
+	PartialContent bool           `json:"partial-content"`
 }
 
 func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 	type UpdateJson struct {
-		DownloadID    int    `json:"download-id"`
-		Bps           int    `json:"bps"`
-		ContentLength int    `json:"content-length"`
-		Length        int    `json:"length"`
-		EstimatedTime int    `json:"estimated-time"`
-		Status        string `json:"status"`
+		DownloadID     int    `json:"download-id"`
+		Bps            int    `json:"bps"`
+		ContentLength  int    `json:"content-length"`
+		Length         int    `json:"length"`
+		EstimatedTime  int    `json:"estimated-time"`
+		Status         string `json:"status"`
+		PartialContent bool   `json:"partial-content"`
 	}
 
 	updateJson := UpdateJson{}
@@ -44,6 +46,8 @@ func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 	updateJson.ContentLength = diu.ContentLength
 	updateJson.Length = diu.Length
 	updateJson.EstimatedTime = diu.EstimatedTime
+	updateJson.PartialContent = diu.PartialContent
+
 	switch diu.Status {
 	case Pending:
 		updateJson.Status = "pending"
@@ -62,38 +66,46 @@ type DownloadItem struct {
 	URL      string
 	Dir      string
 	//ContentLength length should be updated after the complete download.
-	ContentLength int64
-	DateAndTime   time.Time
-	Status        DownloadStatus
-	Updates       chan DownloadItemUpdate
+	ContentLength  int64
+	DateAndTime    time.Time
+	Status         DownloadStatus
+	Updates        chan DownloadItemUpdate
+	PartialContent bool
+	pause          chan struct{}
 }
 
 func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 	downloadItem := DownloadItem{
-		FileName:    FileName,
-		URL:         URL,
-		Dir:         Dir,
-		DateAndTime: time.Now(),
-		Status:      Pending,
-		Updates:     make(chan DownloadItemUpdate, 8),
+		FileName:       FileName,
+		URL:            URL,
+		Dir:            Dir,
+		DateAndTime:    time.Now(),
+		Status:         Pending,
+		Updates:        make(chan DownloadItemUpdate, 8),
+		pause:          make(chan struct{}),
+		PartialContent: false,
 	}
 
-	Sqlite.Execute(func(db *sql.DB) {
+	err := Sqlite.Execute(func(db *sql.DB) error {
 		results, err := db.Exec(fmt.Sprintf(`
-			INSERT INTO downloads (FileName, URL, Dir, DateAndTime, Packs, Status)
-			VALUES ('%s', '%s', '%s', '%s', 0, 0);
+			INSERT INTO downloads (FileName, URL, Dir, DateAndTime, Status)
+			VALUES ('%s', '%s', '%s', '%s', 0);
 		`, downloadItem.FileName, downloadItem.URL, downloadItem.Dir, downloadItem.DateAndTime.String()))
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		ID, err := results.LastInsertId()
 		if err != nil {
-			log.Panicln("NewDownloadItem function")
-			log.Fatal(err)
+			log.Println("NewDownloadItem function")
+			return err
 		}
 		downloadItem.ID = ID
+		return nil
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	downloadItem.Updates <- DownloadItemUpdate{
 		DownloadID: downloadItem.ID,
 		Status:     Pending,
@@ -101,96 +113,22 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 	return downloadItem
 }
 
-func (di *DownloadItem) save(tempDir string) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Println("Home dir error")
-		log.Fatal(err)
-	}
-
-	fileDir := filepath.Join(homeDir, di.Dir)
-	os.MkdirAll(fileDir, 0775)
-	os.Remove(filepath.Join(fileDir, di.FileName))
-
-	saveFilePath := filepath.Join(fileDir, di.FileName+".DownloadManager")
-	os.Remove(saveFilePath)
-	saveFile, err := os.Create(saveFilePath)
-	if err != nil {
-		log.Println("File creation error")
-		log.Fatal(err)
-	}
-	defer saveFile.Close()
-
-	var Packs int64
-	Sqlite.Execute(func(db *sql.DB) {
-		row := db.QueryRow(fmt.Sprintf(`SELECT Packs FROM downloads WHERE ID = %v LIMIT 1;`, di.ID))
-		err := row.Scan(&Packs)
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
-	for i := int64(1); i <= Packs; i++ {
-		downloadPackage, err := os.Open(filepath.Join(tempDir, strconv.Itoa(int(i))))
-		if err != nil {
-			log.Fatal(err)
-		}
-		downloadPackage.WriteTo(saveFile)
-		downloadPackage.Close()
-	}
-	saveFile.Close()
-	os.Rename(saveFilePath, filepath.Join(fileDir, di.FileName))
+// tempDir returns the temDir location.
+func (di *DownloadItem) tempDir() string {
+	tempDir := filepath.Join(os.TempDir(), "DownloadManager", strconv.Itoa(int(di.ID)))
+	os.MkdirAll(tempDir, 0o700)
+	return tempDir
 }
 
-func (di *DownloadItem) newPackage() (*os.File, string) {
-	tempDir := filepath.Join(os.TempDir(), "DownloadManager")
-	os.Mkdir(tempDir, 0o700)
-	tempDir, err := os.MkdirTemp(tempDir, strconv.Itoa(int(di.ID)))
-	if err != nil {
-		log.Println("Temp dir error.")
-		log.Fatal(err)
-	}
-
-	var Packs int64
-	Sqlite.Execute(func(db *sql.DB) {
-		row := db.QueryRow(fmt.Sprintf(`
-			SELECT Packs FROM downloads WHERE ID = %v;
-		`, di.ID))
-		err := row.Scan(&Packs)
-		if err != nil {
-			log.Println("newPackage function")
-			log.Fatal(err)
-		}
-	})
-
-	Packs++
-	downloadItemPack := filepath.Join(tempDir, strconv.Itoa(int(Packs)))
-	os.Remove(downloadItemPack)
-
-	Sqlite.Execute(func(db *sql.DB) {
-		_, err := db.Exec(fmt.Sprintf(`
-			UPDATE downloads SET Packs = %v WHERE ID = %v;
-		`, Packs, di.ID))
-		if err != nil {
-			log.Println("Updating packs count error")
-			log.Fatal(err)
-		}
-	})
-
-	file, err := os.Create(downloadItemPack)
-	if err != nil {
-		log.Println("newPackage function")
-		log.Fatal(err)
-	}
-	return file, tempDir
-}
-
-func (di *DownloadItem) changeStatus(status DownloadStatus) {
-	Sqlite.Execute(func(db *sql.DB) {
+func (di *DownloadItem) changeStatus(status DownloadStatus) error {
+	di.Status = status
+	return Sqlite.Execute(func(db *sql.DB) error {
 		_, err := db.Exec(fmt.Sprintf(`
 			UPDATE downloads SET Status = %v WHERE ID = %v	
 		`, int(status), di.ID))
 		if err != nil {
-			log.Fatal(err)
+			log.Println("Downloading Status updating error.")
 		}
+		return err
 	})
 }

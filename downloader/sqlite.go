@@ -30,11 +30,11 @@ func newSQLite() sqlite {
 	}
 }
 
-func (sq *sqlite) Execute(callback func(db *sql.DB)) {
+func (sq *sqlite) Execute(callback func(db *sql.DB) error) error {
 	sq.mutex.Lock()
 	defer sq.mutex.Unlock()
 
-	callback(sq.db)
+	return callback(sq.db)
 }
 
 var (

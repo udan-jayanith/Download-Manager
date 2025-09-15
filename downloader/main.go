@@ -15,6 +15,7 @@ import (
 
 /*
 # TODOS
+* Refactor the codes (Refactor newPackage, divisions by zero)
 * Resume, Pause, Get-downloading, get-downloads endpoints.
 * Password protection.
 * Improve UpdatesHandler marshaling.
@@ -31,7 +32,7 @@ var (
 )
 
 func main() {
-	Sqlite.Execute(func(db *sql.DB) {
+	err := Sqlite.Execute(func(db *sql.DB) error {
 		_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS downloads 
 		(
@@ -41,14 +42,14 @@ func main() {
 		Dir TEXT NOT NULL,
 		ContentLength INTEGER,
 		DateAndTime TEXT NOT NULL,
-		Packs INTEGER NOT NULL,
 		Status INTEGER NOT NULL
 		);`)
-		if err != nil {
-			log.Println("Creation of download table")
-			log.Fatal(err)
-		}
+		return err
 	})
+	if err != nil {
+		log.Println("downloads table SQL execution error")
+		log.Fatal(err)
+	}
 
 	updatesHandler.Handle()
 
@@ -76,8 +77,7 @@ func main() {
 	http.HandleFunc("/get-downloads", downloadHandler)
 	http.HandleFunc("/get-downloading", downloadHandler)
 	http.HandleFunc("/resume", downloadHandler)
-	http.HandleFunc("/pause", downloadHandler)
-	http.HandleFunc("/remove", downloadHandler)
+	http.HandleFunc("/pause-resume", downloadHandler)
 
 	http.ListenAndServe(os.Getenv("port"), nil)
 }
