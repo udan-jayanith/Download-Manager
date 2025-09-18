@@ -242,7 +242,12 @@ func (di *DownloadItem) parallelDownload(contentLength int) error {
 
 				length.Add(1)
 				bps.Add(1)
-				file.Write([]byte{byt})
+				_, err = file.Write([]byte{byt})
+				if err != nil {
+					log.Println("Writing error")
+					log.Println(err)
+					return
+				}
 			}
 		})
 		offsetLeft += chunkSize
@@ -274,7 +279,11 @@ func (di *DownloadItem) parallelDownload(contentLength int) error {
 			return err
 		}
 
-		file.WriteTo(saveFile)
+		_, err = file.WriteTo(saveFile)
+		if err != nil {
+			log.Println("Writing error")
+			return err
+		}
 		file.Close()
 	}
 	saveFile.Close()
