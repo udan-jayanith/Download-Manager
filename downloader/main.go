@@ -78,9 +78,7 @@ func main() {
 	http.HandleFunc("/download", downloadHandler)
 	http.HandleFunc("/get-downloads", getDownloads)
 	http.HandleFunc("/get-downloading", getDownloading)
-	http.HandleFunc("/resume", downloadHandler)
-	http.HandleFunc("/pause-resume", downloadHandler)
-
+	http.HandleFunc("/search-downloads", getDownloading)
 	http.ListenAndServe(os.Getenv("port"), nil)
 }
 
