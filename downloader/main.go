@@ -129,68 +129,53 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 	limit := 20
 	dateAndTime := r.FormValue("date-and-time")
 
+	Sqlite.Mutex.Lock()
+	defer Sqlite.Mutex.Unlock()
+
+	var sqliteRows *sql.Rows
 	if strings.TrimSpace(dateAndTime) == "" {
-		err := Sqlite.Execute(func(db *sql.DB) error {
-			rows, err := db.Query(fmt.Sprintf(`
-				SELECT * FROM downloads ORDER BY DateAndTime ASC LIMIT %v;
-			`, limit))
-			if err != nil {
-				return err
-			}
-			defer rows.Close()
-
-			for rows.Next() {
-				var downloadItem DownloadItem
-				var dateAndTime string
-				rows.Scan(&downloadItem.ID, &downloadItem.FileName, &downloadItem.URL, &downloadItem.Dir, &downloadItem.ContentLength, &dateAndTime, &downloadItem.Status)
-				log.Println(downloadItem, dateAndTime)
-			}
-			return err
-		})
+		rows, err := Sqlite.DB.Query(fmt.Sprintf(`
+				SELECT * FROM downloads WHERE Status = %v ORDER BY DateAndTime ASC LIMIT %v;
+			`, Complete, limit))
 		if err != nil {
-			WriteError(w, "Querying error.")
-			log.Println(err)
+			WriteError(w, err.Error())
 			return
 		}
-
-		return
+		sqliteRows = rows
 	} else {
-		err := Sqlite.Execute(func(db *sql.DB) error {
-			rows, err := db.Query(fmt.Sprintf(`
-				SELECT * FROM downloads WHERE DateAndTime > datetime('%s') ORDER BY DateAndTime ASC LIMIT %v;
-			`, dateAndTime, limit))
-			if err != nil {
-				return err
-			}
-			defer rows.Close()
-
-			/*
-				ID INTEGER PRIMARY KEY,
-				FileName TEXT NOT NULL,
-				URL TEXT NOT NULL,
-				Dir TEXT NOT NULL,
-				ContentLength INTEGER,
-				DateAndTime TEXT NOT NULL,
-				Status INTEGER NOT NULL
-			*/
-			for rows.Next() {
-				var downloadItem DownloadItem
-				var dateAndTime string
-				rows.Scan(&downloadItem.ID, &downloadItem.FileName, &downloadItem.URL, &downloadItem.Dir, &downloadItem.ContentLength, &dateAndTime, &downloadItem.Status)
-				t, err := time.Parse(time.RFC3339, dateAndTime)
-				if err != nil && dateAndTime != "" {
-					return err
-				}
-				downloadItem.DateAndTime = t
-				log.Println(downloadItem)
-			}
-			return err
-		})
+		rows, err := Sqlite.DB.Query(fmt.Sprintf(`
+				SELECT * FROM downloads WHERE Status = %v AND DateAndTime > datetime('%s') ORDER BY DateAndTime ASC LIMIT %v;
+			`, Complete, dateAndTime, limit))
 		if err != nil {
-			WriteError(w, "Querying error.")
-			log.Println(err)
+			WriteError(w, err.Error())
 			return
 		}
+		sqliteRows = rows
+	}
+	defer sqliteRows.Close()
+
+	type JsonResponse struct {
+		DownloadItems []DownloadItemJson `json:"download-items"`
+	}
+	jsonRes := JsonResponse{
+		DownloadItems: make([]DownloadItemJson, 0, 20),
 	}
 
+	for sqliteRows.Next() {
+		var downloadItem DownloadItem
+		var dateAndTime string
+		sqliteRows.Scan(&downloadItem.ID, &downloadItem.FileName, &downloadItem.URL, &downloadItem.Dir, &downloadItem.ContentLength, &dateAndTime, &downloadItem.Status)
+		if dateAndTime != "" {
+			t, err := time.Parse(time.RFC3339, dateAndTime)
+			if err != nil {
+				WriteError(w, err.Error())
+				return
+			}
+			downloadItem.DateAndTime = t
+		}
+
+		jsonRes.DownloadItems = append(jsonRes.DownloadItems, downloadItem.JSON())
+	}
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(&jsonRes)
 }

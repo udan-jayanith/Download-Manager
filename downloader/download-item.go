@@ -51,7 +51,7 @@ func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 	updateJson.PartialContent = diu.PartialContent
 	if diu.Err != nil {
 		updateJson.Err = diu.Err.Error()
-	}else{
+	} else {
 		updateJson.Err = ""
 	}
 
@@ -136,4 +136,36 @@ func (di *DownloadItem) changeStatus(status DownloadStatus) error {
 		}
 		return err
 	})
+}
+
+type DownloadItemJson struct {
+	ID             int64  `json:"id"`
+	FileName       string `json:"file-name"`
+	URL            string `json:"url"`
+	Dir            string `json:"dir"`
+	ContentLength  int64  `json:"content-length"`
+	DateAndTime    string `json:"date-and-time"`
+	Status         string `json:"status"`
+	PartialContent bool   `json:"partial-content"`
+}
+
+func (di *DownloadItem) JSON() DownloadItemJson {
+	var v DownloadItemJson
+	v.ID = di.ID
+	v.FileName = di.FileName
+	v.URL = di.URL
+	v.Dir = di.Dir
+	v.ContentLength = di.ContentLength
+	v.DateAndTime = di.DateAndTime.Format(time.RFC3339)
+	switch di.Status {
+	case Pending:
+		v.Status = "pending"
+	case Downloading:
+		v.Status = "downloading"
+	case Complete:
+		v.Status = "complete"
+	}
+	v.PartialContent = di.PartialContent
+
+	return v
 }
