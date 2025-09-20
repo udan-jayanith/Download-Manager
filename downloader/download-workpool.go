@@ -40,6 +40,8 @@ func NewDownloadWorkPool() DownloadWorkPool {
 				<-concurrentDownloadsChan
 			}()
 		}
+		close(workPool.downloads)
+		close(workPool.Updates)
 	}()
 
 	return workPool

@@ -27,6 +27,7 @@ type DownloadItemUpdate struct {
 	EstimatedTime  int            `json:"estimated-time"`
 	Status         DownloadStatus `json:"download-status"`
 	PartialContent bool           `json:"partial-content"`
+	Err            error          `json:"error"`
 }
 
 func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
@@ -38,6 +39,7 @@ func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 		EstimatedTime  int    `json:"estimated-time"`
 		Status         string `json:"status"`
 		PartialContent bool   `json:"partial-content"`
+		Err            string `json:"error"`
 	}
 
 	updateJson := UpdateJson{}
@@ -47,6 +49,11 @@ func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 	updateJson.Length = diu.Length
 	updateJson.EstimatedTime = diu.EstimatedTime
 	updateJson.PartialContent = diu.PartialContent
+	if diu.Err != nil {
+		updateJson.Err = diu.Err.Error()
+	}else{
+		updateJson.Err = ""
+	}
 
 	switch diu.Status {
 	case Pending:
@@ -71,7 +78,6 @@ type DownloadItem struct {
 	Status         DownloadStatus
 	Updates        chan DownloadItemUpdate
 	PartialContent bool
-	pause          chan struct{}
 }
 
 func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
@@ -82,15 +88,14 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		DateAndTime:    time.Now(),
 		Status:         Pending,
 		Updates:        make(chan DownloadItemUpdate, 8),
-		pause:          make(chan struct{}),
 		PartialContent: false,
 	}
 
 	err := Sqlite.Execute(func(db *sql.DB) error {
-		results, err := db.Exec(fmt.Sprintf(`
-			INSERT INTO downloads (FileName, URL, Dir, DateAndTime, Status)
-			VALUES ('%s', '%s', '%s', '%s', 0);
-		`, downloadItem.FileName, downloadItem.URL, downloadItem.Dir, downloadItem.DateAndTime.String()))
+		results, err := db.Exec(`
+			INSERT INTO downloads (FileName, URL, Dir, ContentLength, DateAndTime, Status)
+			VALUES (?, ?, ?, 0, ?, ?);
+		`, downloadItem.FileName, downloadItem.URL, downloadItem.Dir, downloadItem.DateAndTime.Format(time.RFC3339), Pending)
 		if err != nil {
 			return err
 		}

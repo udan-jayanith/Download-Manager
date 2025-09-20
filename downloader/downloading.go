@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,28 +25,47 @@ func newFile(filePath string) (*os.File, error) {
 func (di *DownloadItem) download() {
 	header, err := getHeaders(di.URL)
 	if err != nil {
-		log.Println("Error while getting the header.")
-		log.Println(err)
+		di.Updates <- DownloadItemUpdate{
+			Err: err,
+		}
 		return
 	}
+	defer close(di.Updates)
 
 	contentLength, err := strconv.Atoi(header.Get("Content-Length"))
 	if err != nil {
 		contentLength = 0
 	}
 
+	err = Sqlite.Execute(func(db *sql.DB) error {
+		_, err := db.Exec(`
+			UPDATE downloads SET ContentLength = ? WHERE ID = ?;
+		`, contentLength, di.ID)
+		return err
+	})
+	if err != nil {
+		di.Updates <- DownloadItemUpdate{
+			Err: err,
+		}
+		return
+	}
+
 	if header.Get("Content-Length") == "" || header.Get("Accept-Ranges") == "none" || header.Get("Accept-Ranges") == "" || contentLength <= 0 {
 		err = di.sequentialDownload(contentLength)
 		if err != nil {
-			log.Println("Error occurred while downloading sequentially")
-			log.Println(err)
+			di.Updates <- DownloadItemUpdate{
+				Err: err,
+			}
+			return
 		}
 		return
 	}
 	err = di.parallelDownload(contentLength)
 	if err != nil {
-		log.Println("parallelDownload error")
-		log.Println(err)
+		di.Updates <- DownloadItemUpdate{
+			Err: err,
+		}
+		return
 	}
 }
 
@@ -191,7 +211,7 @@ func (di *DownloadItem) parallelDownload(contentLength int) error {
 				Length:        int(length.Load()),
 				EstimatedTime: func() int {
 					if bps.Load() > 0 && contentLength-int(length.Load()) > 0 {
-						return int((int64(contentLength) - length.Load())/bps.Load())
+						return int((int64(contentLength) - length.Load()) / bps.Load())
 					}
 					return 0
 				}(),

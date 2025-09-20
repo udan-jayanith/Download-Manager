@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+	"strings"
+	"time"
 
 	"net/http"
 
@@ -15,10 +18,9 @@ import (
 
 /*
 # TODOS
-* Refactor the codes (Refactor newPackage, divisions by zero)
-* Resume, Pause, Get-downloading, get-downloads endpoints.
+* Close channels and update the db when a download is completed with the content length ot the package.
+* Get-downloading, get-downloads endpoints.
 * Password protection.
-* Improve UpdatesHandler marshaling.
 */
 
 var (
@@ -74,7 +76,7 @@ func main() {
 	})
 
 	http.HandleFunc("/download", downloadHandler)
-	http.HandleFunc("/get-downloads", downloadHandler)
+	http.HandleFunc("/get-downloads", getDownloads)
 	http.HandleFunc("/get-downloading", downloadHandler)
 	http.HandleFunc("/resume", downloadHandler)
 	http.HandleFunc("/pause-resume", downloadHandler)
@@ -88,6 +90,14 @@ func AllowCrossOrigin(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 }
 
+func WriteError(w http.ResponseWriter, errorMsg string) {
+	w.Write([]byte(fmt.Sprintf(`
+		{
+			"error": %s
+		}
+	`, errorMsg)))
+}
+
 func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	type request struct {
 		FileName string `json:"file-name"`
@@ -99,7 +109,8 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	var req request
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		log.Fatal(err)
+		WriteError(w, fmt.Sprintf("body decoding error, %s", err))
+		return
 	}
 
 	if req.Password != os.Getenv("password") {
@@ -110,4 +121,76 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	downloadItem := NewDownloadItem(req.FileName, req.Dir, req.URL)
 	downloadWorkPool.Download(downloadItem)
+}
+
+func getDownloads(w http.ResponseWriter, r *http.Request) {
+	AllowCrossOrigin(w)
+
+	limit := 20
+	dateAndTime := r.FormValue("date-and-time")
+
+	if strings.TrimSpace(dateAndTime) == "" {
+		err := Sqlite.Execute(func(db *sql.DB) error {
+			rows, err := db.Query(fmt.Sprintf(`
+				SELECT * FROM downloads ORDER BY DateAndTime ASC LIMIT %v;
+			`, limit))
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			for rows.Next() {
+				var downloadItem DownloadItem
+				var dateAndTime string
+				rows.Scan(&downloadItem.ID, &downloadItem.FileName, &downloadItem.URL, &downloadItem.Dir, &downloadItem.ContentLength, &dateAndTime, &downloadItem.Status)
+				log.Println(downloadItem, dateAndTime)
+			}
+			return err
+		})
+		if err != nil {
+			WriteError(w, "Querying error.")
+			log.Println(err)
+			return
+		}
+
+		return
+	} else {
+		err := Sqlite.Execute(func(db *sql.DB) error {
+			rows, err := db.Query(fmt.Sprintf(`
+				SELECT * FROM downloads WHERE DateAndTime > datetime('%s') ORDER BY DateAndTime ASC LIMIT %v;
+			`, dateAndTime, limit))
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			/*
+				ID INTEGER PRIMARY KEY,
+				FileName TEXT NOT NULL,
+				URL TEXT NOT NULL,
+				Dir TEXT NOT NULL,
+				ContentLength INTEGER,
+				DateAndTime TEXT NOT NULL,
+				Status INTEGER NOT NULL
+			*/
+			for rows.Next() {
+				var downloadItem DownloadItem
+				var dateAndTime string
+				rows.Scan(&downloadItem.ID, &downloadItem.FileName, &downloadItem.URL, &downloadItem.Dir, &downloadItem.ContentLength, &dateAndTime, &downloadItem.Status)
+				t, err := time.Parse(time.RFC3339, dateAndTime)
+				if err != nil && dateAndTime != "" {
+					return err
+				}
+				downloadItem.DateAndTime = t
+				log.Println(downloadItem)
+			}
+			return err
+		})
+		if err != nil {
+			WriteError(w, "Querying error.")
+			log.Println(err)
+			return
+		}
+	}
+
 }

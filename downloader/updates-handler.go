@@ -41,5 +41,6 @@ func (uh *UpdatesHandler) Handle() {
 				delete(uh.conns, conn)
 			}
 		}
+		close(uh.updatesChan)
 	}()
 }

@@ -11,7 +11,7 @@ import (
 )
 
 type sqlite struct {
-	mutex *sync.Mutex
+	Mutex *sync.Mutex
 	db    *sql.DB
 }
 
@@ -25,14 +25,14 @@ func newSQLite() sqlite {
 	}
 
 	return sqlite{
-		mutex: &sync.Mutex{},
+		Mutex: &sync.Mutex{},
 		db:    db,
 	}
 }
 
 func (sq *sqlite) Execute(callback func(db *sql.DB) error) error {
-	sq.mutex.Lock()
-	defer sq.mutex.Unlock()
+	sq.Mutex.Lock()
+	defer sq.Mutex.Unlock()
 
 	return callback(sq.db)
 }
