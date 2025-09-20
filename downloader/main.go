@@ -77,7 +77,7 @@ func main() {
 
 	http.HandleFunc("/download", downloadHandler)
 	http.HandleFunc("/get-downloads", getDownloads)
-	http.HandleFunc("/get-downloading", downloadHandler)
+	http.HandleFunc("/get-downloading", getDownloading)
 	http.HandleFunc("/resume", downloadHandler)
 	http.HandleFunc("/pause-resume", downloadHandler)
 
@@ -91,11 +91,12 @@ func AllowCrossOrigin(w http.ResponseWriter) {
 }
 
 func WriteError(w http.ResponseWriter, errorMsg string) {
-	w.Write([]byte(fmt.Sprintf(`
+	w.Header().Add("Content-Type", "application/json")
+	fmt.Fprintf(w, `
 		{
 			"error": %s
 		}
-	`, errorMsg)))
+	`, errorMsg)
 }
 
 func downloadHandler(w http.ResponseWriter, r *http.Request) {
@@ -121,6 +122,20 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	downloadItem := NewDownloadItem(req.FileName, req.Dir, req.URL)
 	downloadWorkPool.Download(downloadItem)
+}
+
+func RowToDownloadItem(rows *sql.Rows) (DownloadItem, error) {
+	var downloadItem DownloadItem
+	var dateAndTime string
+	rows.Scan(&downloadItem.ID, &downloadItem.FileName, &downloadItem.URL, &downloadItem.Dir, &downloadItem.ContentLength, &dateAndTime, &downloadItem.Status)
+	if dateAndTime != "" {
+		t, err := time.Parse(time.RFC3339, dateAndTime)
+		if err != nil {
+			return downloadItem, err
+		}
+		downloadItem.DateAndTime = t
+	}
+	return downloadItem, nil
 }
 
 func getDownloads(w http.ResponseWriter, r *http.Request) {
@@ -162,20 +177,51 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for sqliteRows.Next() {
-		var downloadItem DownloadItem
-		var dateAndTime string
-		sqliteRows.Scan(&downloadItem.ID, &downloadItem.FileName, &downloadItem.URL, &downloadItem.Dir, &downloadItem.ContentLength, &dateAndTime, &downloadItem.Status)
-		if dateAndTime != "" {
-			t, err := time.Parse(time.RFC3339, dateAndTime)
-			if err != nil {
-				WriteError(w, err.Error())
-				return
-			}
-			downloadItem.DateAndTime = t
+		downloadItem, err := RowToDownloadItem(sqliteRows)
+		if err != nil {
+			WriteError(w, err.Error())
+			return
 		}
 
 		jsonRes.DownloadItems = append(jsonRes.DownloadItems, downloadItem.JSON())
 	}
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(&jsonRes)
+}
+
+func getDownloading(w http.ResponseWriter, r *http.Request) {
+	AllowCrossOrigin(w)
+
+	type JsonRes struct {
+		DownloadingItems []DownloadItemJson `json:"downloading-items"`
+	}
+	jsonRes := JsonRes{
+		DownloadingItems: make([]DownloadItemJson, 0, 3),
+	}
+
+	err := Sqlite.Execute(func(db *sql.DB) error {
+		rows, err := db.Query(`
+			SELECT * FROM downloads WHERE Status = ?;
+		`, Downloading)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			downloadItem, err := RowToDownloadItem(rows)
+			if err != nil {
+				return err
+			}
+			jsonRes.DownloadingItems = append(jsonRes.DownloadingItems, downloadItem.JSON())
+		}
+		return err
+	})
+	if err != nil {
+		WriteError(w, err.Error())
+		return
+	}
+
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&jsonRes)
 }
