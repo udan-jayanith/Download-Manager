@@ -25,9 +25,7 @@ func newFile(filePath string) (*os.File, error) {
 func (di *DownloadItem) download() {
 	header, err := getHeaders(di.URL)
 	if err != nil {
-		di.Updates <- DownloadItemUpdate{
-			Err: err,
-		}
+		di.Update(0, 0, 0, err)
 		return
 	}
 	defer close(di.Updates)
@@ -44,27 +42,21 @@ func (di *DownloadItem) download() {
 		return err
 	})
 	if err != nil {
-		di.Updates <- DownloadItemUpdate{
-			Err: err,
-		}
+		di.Update(0, 0, 0, err)
 		return
 	}
 
 	if header.Get("Content-Length") == "" || header.Get("Accept-Ranges") == "none" || header.Get("Accept-Ranges") == "" || contentLength <= 0 {
 		err = di.sequentialDownload(contentLength)
 		if err != nil {
-			di.Updates <- DownloadItemUpdate{
-				Err: err,
-			}
+			di.Update(0, 0, 0, err)
 			return
 		}
 		return
 	}
 	err = di.parallelDownload(contentLength)
 	if err != nil {
-		di.Updates <- DownloadItemUpdate{
-			Err: err,
-		}
+		di.Update(0, 0, 0, err)
 		return
 	}
 }
@@ -82,25 +74,15 @@ func (di *DownloadItem) sequentialDownload(contentLength int) error {
 		return err
 	}
 	di.PartialContent = false
-	di.Updates <- DownloadItemUpdate{
-		DownloadID:    di.ID,
-		Status:        Downloading,
-		ContentLength: contentLength,
-	}
-	defer func() error {
-		di.Updates <- DownloadItemUpdate{
-			DownloadID:    di.ID,
-			Status:        Complete,
-			ContentLength: contentLength,
-			Length:        contentLength,
-		}
+	di.Update(0, 0, 0, nil)
+	defer func() {
 		err := di.changeStatus(Complete)
-		return err
+		di.Update(0, contentLength, 0, err)
 	}()
 
 	res, err := http.Get(di.URL)
 	if err != nil {
-		log.Println(err)
+		di.Update(0, 0, 0, err)
 		return err
 	}
 	defer res.Body.Close()
@@ -232,25 +214,26 @@ func (di *DownloadItem) parallelDownload(contentLength int) error {
 			//Http request
 			req, err := http.NewRequest("GET", di.URL, nil)
 			if err != nil {
-				log.Println("Parallel download request error")
-				log.Fatal(err)
+				di.Update(0, 0, 0, err)
+				return
 			}
 			req.Header.Add("Range", fmt.Sprintf("bytes=%v-%v", startPos, endPos))
 
 			res, err := http.DefaultClient.Do(req)
 			if err != nil {
-				log.Println(err)
+				di.Update(0, 0, 0, err)
 				return
 			} else if res.StatusCode != http.StatusPartialContent {
-				log.Println("Got unexpected status code expected", http.StatusPartialContent, "but got", res.StatusCode)
+				di.Update(0, 0, 0, fmt.Errorf("Got unexpected status code expected %v but got %v", http.StatusPartialContent, res.StatusCode))
+				return
 			}
 			defer res.Body.Close()
 
 			rd := bufio.NewReader(res.Body)
 			file, err := newFile(filepath.Join(di.tempDir(), strconv.Itoa(currentFileNo)))
 			if err != nil {
-				log.Println("Error occurred when calling newFile.")
-				log.Fatal(err)
+				di.Update(0, 0, 0, err)
+				return
 			}
 			defer file.Close()
 
@@ -264,8 +247,7 @@ func (di *DownloadItem) parallelDownload(contentLength int) error {
 				bps.Add(1)
 				_, err = file.Write([]byte{byt})
 				if err != nil {
-					log.Println("Writing error")
-					log.Println(err)
+					di.Update(0, 0, 0, err)
 					return
 				}
 			}

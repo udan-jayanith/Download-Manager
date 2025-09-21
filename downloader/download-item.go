@@ -169,3 +169,17 @@ func (di *DownloadItem) JSON() DownloadItemJson {
 
 	return v
 }
+
+func (di *DownloadItem) Update(bps, length, estimatedTime int, err error) {
+	di.Updates <- DownloadItemUpdate{
+		DownloadID:     di.ID,
+		ContentLength:  int(di.ContentLength),
+		Status:         di.Status,
+		PartialContent: di.PartialContent,
+
+		BytesPerSec:   bps,
+		Length:        length,
+		EstimatedTime: estimatedTime,
+		Err:           err,
+	}
+}
