@@ -17,6 +17,7 @@ const (
 	Pending DownloadStatus = iota
 	Downloading
 	Complete
+	Paused
 )
 
 type DownloadItemUpdate struct {
@@ -62,6 +63,8 @@ func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 		updateJson.Status = "downloading"
 	case Complete:
 		updateJson.Status = "complete"
+	case Paused:
+		updateJson.Status = "paused"
 	}
 
 	return json.Marshal(&updateJson)

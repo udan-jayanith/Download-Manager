@@ -79,7 +79,7 @@ func main() {
 	http.HandleFunc("/get-downloads", getDownloads)
 	http.HandleFunc("/get-downloading", getDownloading)
 	http.HandleFunc("/search-downloads", searchDownload)
-	http.HandleFunc("/remove-download", getDownloading)
+	http.HandleFunc("/", getDownloading)
 	http.ListenAndServe(os.Getenv("port"), nil)
 }
 
@@ -200,8 +200,8 @@ func getDownloading(w http.ResponseWriter, r *http.Request) {
 
 	err := Sqlite.Execute(func(db *sql.DB) error {
 		rows, err := db.Query(`
-			SELECT * FROM downloads WHERE Status = ?;
-		`, Downloading)
+			SELECT * FROM downloads WHERE Status = ? OR Status = ?;
+		`, Downloading, Pending)
 		if err != nil {
 			return err
 		}
