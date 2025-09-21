@@ -79,6 +79,7 @@ func main() {
 	http.HandleFunc("/get-downloads", getDownloads)
 	http.HandleFunc("/get-downloading", getDownloading)
 	http.HandleFunc("/search-downloads", getDownloading)
+	http.HandleFunc("/remove-download", getDownloading)
 	http.ListenAndServe(os.Getenv("port"), nil)
 }
 
@@ -156,9 +157,9 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 		}
 		sqliteRows = rows
 	} else {
-		rows, err := Sqlite.DB.Query(fmt.Sprintf(`
-				SELECT * FROM downloads WHERE Status = %v AND DateAndTime > datetime('%s') ORDER BY DateAndTime ASC LIMIT %v;
-			`, Complete, dateAndTime, limit))
+		rows, err := Sqlite.DB.Query(`
+				SELECT * FROM downloads WHERE Status = ? AND DateAndTime > ? ORDER BY DateAndTime ASC LIMIT ?;
+			`, Complete, dateAndTime, limit)
 		if err != nil {
 			WriteError(w, err.Error())
 			return
