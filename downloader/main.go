@@ -237,8 +237,8 @@ func searchDownload(w http.ResponseWriter, r *http.Request) {
 	defer Sqlite.Mutex.Unlock()
 
 	rows, err := Sqlite.DB.Query(`
-		SELECT * FROM downloads WHERE FileName LIKE ? OR URL LIKE ?;
-	`, query, query)
+		SELECT * FROM downloads WHERE Status = ? AND (FileName LIKE ? OR URL LIKE ?);
+	`, Complete, query, query)
 	if err != nil {
 		WriteError(w, err.Error())
 		return
