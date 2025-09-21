@@ -200,8 +200,8 @@ func getDownloading(w http.ResponseWriter, r *http.Request) {
 
 	err := Sqlite.Execute(func(db *sql.DB) error {
 		rows, err := db.Query(`
-			SELECT * FROM downloads WHERE Status = ? OR Status = ?;
-		`, Downloading, Pending)
+			SELECT * FROM downloads WHERE Status = ?;
+		`, Downloading)
 		if err != nil {
 			return err
 		}
