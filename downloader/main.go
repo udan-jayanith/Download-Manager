@@ -78,7 +78,7 @@ func main() {
 	http.HandleFunc("/download", downloadHandler)
 	http.HandleFunc("/get-downloads", getDownloads)
 	http.HandleFunc("/get-downloading", getDownloading)
-	http.HandleFunc("/search-downloads", getDownloading)
+	http.HandleFunc("/search-downloads", searchDownload)
 	http.HandleFunc("/remove-download", getDownloading)
 	http.ListenAndServe(os.Getenv("port"), nil)
 }
@@ -93,7 +93,7 @@ func WriteError(w http.ResponseWriter, errorMsg string) {
 	w.Header().Add("Content-Type", "application/json")
 	fmt.Fprintf(w, `
 		{
-			"error": %s
+			"error": "%s"
 		}
 	`, errorMsg)
 }
@@ -223,4 +223,44 @@ func getDownloading(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&jsonRes)
+}
+
+func searchDownload(w http.ResponseWriter, r *http.Request) {
+	query := strings.TrimSpace(r.FormValue("query"))
+	if query == "" {
+		WriteError(w, "Missing query")
+		return
+	}
+	query = "%" + query + "%"
+
+	Sqlite.Mutex.Lock()
+	defer Sqlite.Mutex.Unlock()
+
+	rows, err := Sqlite.DB.Query(`
+		SELECT * FROM downloads WHERE FileName LIKE ? OR URL LIKE ?;
+	`, query, query)
+	if err != nil {
+		WriteError(w, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	searchResults := struct {
+		SearchResults []DownloadItemJson `json:"search-results"`
+	}{
+		SearchResults: make([]DownloadItemJson, 0, 20),
+	}
+
+	for rows.Next() {
+		downloadItem, err := RowToDownloadItem(rows)
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		}
+
+		searchResults.SearchResults = append(searchResults.SearchResults, downloadItem.JSON())
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(&searchResults)
 }
