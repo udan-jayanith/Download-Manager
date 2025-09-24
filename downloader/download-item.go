@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -96,18 +94,18 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 	}
 
 	tempFile, err := os.CreateTemp(os.TempDir(), "Download-Manager")
+	tempFile.Close()
+	downloadItem.TempFilePath = tempFile.Name()
 	if err != nil {
 		downloadItem.Update(0, 0, 0, err)
 		return downloadItem
 	}
-	defer tempFile.Close()
 
-	tempFilePath := filepath.Join(os.TempDir(), tempFile.Name())
 	err = Sqlite.Execute(func(db *sqlx.DB) error {
 		results, err := db.Exec(`
 			INSERT INTO downloads (FileName, URL, Dir, ContentLength, DateAndTime, Status, TempFilePath)
 			VALUES (?, ?, ?, 0, ?, ?, ?);
-		`, downloadItem.FileName, downloadItem.URL, downloadItem.Dir, downloadItem.DateAndTime.Format(time.RFC3339), Pending, tempFilePath)
+		`, downloadItem.FileName, downloadItem.URL, downloadItem.Dir, downloadItem.DateAndTime.Format(time.RFC3339), Pending, tempFile.Name())
 		if err != nil {
 			return err
 		}
@@ -124,16 +122,35 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		downloadItem.Update(0, 0, 0, err)
 		return downloadItem
 	}
+	downloadItem.Status = Pending
+	downloadItem.updateStatus()
 	downloadItem.Update(0, 0, 0, nil)
 	return downloadItem
 }
 
-func (di *DownloadItem) changeStatus(status DownloadStatus) error {
-	di.Status = status
+func (di *DownloadItem) updateStatus() error {
 	return Sqlite.Execute(func(db *sqlx.DB) error {
-		_, err := db.Exec(fmt.Sprintf(`
-			UPDATE downloads SET Status = %v WHERE ID = %v	
-		`, int(status), di.ID))
+		_, err := db.Exec(`
+			UPDATE downloads SET Status = ? WHERE ID = ?;
+		`, di.Status, di.ID)
+		return err
+	})
+}
+
+func (di *DownloadItem) updateContentLength() error {
+	return Sqlite.Execute(func(db *sqlx.DB) error {
+		_, err := db.Exec(`
+			UPDATE downloads SET ContentLength = ? WHERE ID = ?;
+		`, di.ContentLength, di.ID)
+		return err
+	})
+}
+
+func (di *DownloadItem) updateTempFilepath() error {
+	return Sqlite.Execute(func(db *sqlx.DB) error {
+		_, err := db.Exec(`
+			UPDATE downloads SET TempFilePath = ? WHERE ID = ?;
+		`, di.TempFilePath, di.ID)
 		return err
 	})
 }
@@ -165,6 +182,8 @@ func (di *DownloadItem) JSON() DownloadItemJson {
 		v.Status = "downloading"
 	case Complete:
 		v.Status = "complete"
+	case Paused:
+		v.Status = "paused"
 	}
 	v.PartialContent = di.PartialContent
 
@@ -183,4 +202,9 @@ func (di *DownloadItem) Update(bps, length, estimatedTime int, err error) {
 		EstimatedTime: estimatedTime,
 		Err:           err,
 	}
+}
+
+func (di *DownloadItem) setContentLength(contentLength int64){
+	di.ContentLength = contentLength
+	di.updateContentLength()
 }

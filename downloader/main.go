@@ -140,7 +140,7 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(dateAndTime) == "" {
 		err := Sqlite.DB.Select(&jsonRes.DownloadItems, `
-				SELECT * FROM downloads WHERE Status = %v ORDER BY DateAndTime ASC LIMIT %v;
+				SELECT * FROM downloads WHERE Status = ? ORDER BY DateAndTime ASC LIMIT ?;
 			`, Complete, limit)
 		if err != nil {
 			WriteError(w, err.Error())
