@@ -1,17 +1,16 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "modernc.org/sqlite"
 )
@@ -34,7 +33,7 @@ var (
 )
 
 func main() {
-	err := Sqlite.Execute(func(db *sql.DB) error {
+	err := Sqlite.Execute(func(db *sqlx.DB) error {
 		_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS downloads 
 		(
@@ -44,7 +43,8 @@ func main() {
 		Dir TEXT NOT NULL,
 		ContentLength INTEGER,
 		DateAndTime TEXT NOT NULL,
-		Status INTEGER NOT NULL
+		Status INTEGER NOT NULL,
+		TempFilePath TEXT
 		);`)
 		return err
 	})
@@ -123,20 +123,6 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	downloadWorkPool.Download(downloadItem)
 }
 
-func RowToDownloadItem(rows *sql.Rows) (DownloadItem, error) {
-	var downloadItem DownloadItem
-	var dateAndTime string
-	rows.Scan(&downloadItem.ID, &downloadItem.FileName, &downloadItem.URL, &downloadItem.Dir, &downloadItem.ContentLength, &dateAndTime, &downloadItem.Status)
-	if dateAndTime != "" {
-		t, err := time.Parse(time.RFC3339, dateAndTime)
-		if err != nil {
-			return downloadItem, err
-		}
-		downloadItem.DateAndTime = t
-	}
-	return downloadItem, nil
-}
-
 func getDownloads(w http.ResponseWriter, r *http.Request) {
 	AllowCrossOrigin(w)
 
@@ -146,44 +132,30 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 	Sqlite.Mutex.Lock()
 	defer Sqlite.Mutex.Unlock()
 
-	var sqliteRows *sql.Rows
+	jsonRes := struct {
+		DownloadItems []DownloadItemJson `json:"download-items"`
+	}{
+		DownloadItems: make([]DownloadItemJson, 0, 20),
+	}
+
 	if strings.TrimSpace(dateAndTime) == "" {
-		rows, err := Sqlite.DB.Query(fmt.Sprintf(`
+		err := Sqlite.DB.Select(&jsonRes.DownloadItems, `
 				SELECT * FROM downloads WHERE Status = %v ORDER BY DateAndTime ASC LIMIT %v;
-			`, Complete, limit))
+			`, Complete, limit)
 		if err != nil {
 			WriteError(w, err.Error())
 			return
 		}
-		sqliteRows = rows
 	} else {
-		rows, err := Sqlite.DB.Query(`
+		err := Sqlite.DB.Select(&jsonRes.DownloadItems, `
 				SELECT * FROM downloads WHERE Status = ? AND DateAndTime > ? ORDER BY DateAndTime ASC LIMIT ?;
 			`, Complete, dateAndTime, limit)
 		if err != nil {
 			WriteError(w, err.Error())
 			return
 		}
-		sqliteRows = rows
-	}
-	defer sqliteRows.Close()
-
-	type JsonResponse struct {
-		DownloadItems []DownloadItemJson `json:"download-items"`
-	}
-	jsonRes := JsonResponse{
-		DownloadItems: make([]DownloadItemJson, 0, 20),
 	}
 
-	for sqliteRows.Next() {
-		downloadItem, err := RowToDownloadItem(sqliteRows)
-		if err != nil {
-			WriteError(w, err.Error())
-			return
-		}
-
-		jsonRes.DownloadItems = append(jsonRes.DownloadItems, downloadItem.JSON())
-	}
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&jsonRes)
 }
@@ -191,28 +163,18 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 func getDownloading(w http.ResponseWriter, r *http.Request) {
 	AllowCrossOrigin(w)
 
-	type JsonRes struct {
+	jsonRes := struct {
 		DownloadingItems []DownloadItemJson `json:"downloading-items"`
-	}
-	jsonRes := JsonRes{
+	}{
 		DownloadingItems: make([]DownloadItemJson, 0, 3),
 	}
 
-	err := Sqlite.Execute(func(db *sql.DB) error {
-		rows, err := db.Query(`
-			SELECT * FROM downloads WHERE Status = ?;
-		`, Downloading)
+	err := Sqlite.Execute(func(db *sqlx.DB) error {
+		err := db.Select(&jsonRes.DownloadingItems, `
+			SELECT * FROM downloads WHERE Status != ?;
+		`, Complete)
 		if err != nil {
 			return err
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			downloadItem, err := RowToDownloadItem(rows)
-			if err != nil {
-				return err
-			}
-			jsonRes.DownloadingItems = append(jsonRes.DownloadingItems, downloadItem.JSON())
 		}
 		return err
 	})
@@ -236,29 +198,18 @@ func searchDownload(w http.ResponseWriter, r *http.Request) {
 	Sqlite.Mutex.Lock()
 	defer Sqlite.Mutex.Unlock()
 
-	rows, err := Sqlite.DB.Query(`
-		SELECT * FROM downloads WHERE Status = ? AND (FileName LIKE ? OR URL LIKE ?);
-	`, Complete, query, query)
-	if err != nil {
-		WriteError(w, err.Error())
-		return
-	}
-	defer rows.Close()
-
 	searchResults := struct {
 		SearchResults []DownloadItemJson `json:"search-results"`
 	}{
 		SearchResults: make([]DownloadItemJson, 0, 20),
 	}
 
-	for rows.Next() {
-		downloadItem, err := RowToDownloadItem(rows)
-		if err != nil {
-			WriteError(w, err.Error())
-			return
-		}
-
-		searchResults.SearchResults = append(searchResults.SearchResults, downloadItem.JSON())
+	err := Sqlite.DB.Select(&searchResults.SearchResults, `
+		SELECT * FROM downloads WHERE Status = ? AND (FileName LIKE ? OR URL LIKE ?);
+	`, Complete, query, query)
+	if err != nil {
+		WriteError(w, err.Error())
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")

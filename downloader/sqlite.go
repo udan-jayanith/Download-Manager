@@ -1,24 +1,24 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"os"
 	"path/filepath"
 	"sync"
 
+	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
 
 type sqlite struct {
 	Mutex *sync.Mutex
-	DB    *sql.DB
+	DB    *sqlx.DB
 }
 
 func newSQLite() sqlite {
 	os.MkdirAll(os.Getenv("DBDir"), 0775)
 
-	db, err := sql.Open("sqlite", filepath.Join(os.Getenv("DBDir"), "database.db"))
+	db, err := sqlx.Connect("sqlite", filepath.Join(os.Getenv("DBDir"), "database.db"))
 	if err != nil {
 		log.Println("Initialization function of Sqlite.")
 		log.Fatal(err)
@@ -30,7 +30,7 @@ func newSQLite() sqlite {
 	}
 }
 
-func (sq *sqlite) Execute(callback func(db *sql.DB) error) error {
+func (sq *sqlite) Execute(callback func(db *sqlx.DB) error) error {
 	sq.Mutex.Lock()
 	defer sq.Mutex.Unlock()
 

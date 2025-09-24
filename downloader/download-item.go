@@ -1,14 +1,14 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type DownloadStatus int
@@ -80,6 +80,7 @@ type DownloadItem struct {
 	DateAndTime    time.Time
 	Status         DownloadStatus
 	Updates        chan DownloadItemUpdate
+	TempFilePath   string
 	PartialContent bool
 }
 
@@ -94,11 +95,19 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		PartialContent: false,
 	}
 
-	err := Sqlite.Execute(func(db *sql.DB) error {
+	tempFile, err := os.CreateTemp(os.TempDir(), "Download-Manager")
+	if err != nil {
+		downloadItem.Update(0, 0, 0, err)
+		return downloadItem
+	}
+	defer tempFile.Close()
+
+	tempFilePath := filepath.Join(os.TempDir(), tempFile.Name())
+	err = Sqlite.Execute(func(db *sqlx.DB) error {
 		results, err := db.Exec(`
-			INSERT INTO downloads (FileName, URL, Dir, ContentLength, DateAndTime, Status)
-			VALUES (?, ?, ?, 0, ?, ?);
-		`, downloadItem.FileName, downloadItem.URL, downloadItem.Dir, downloadItem.DateAndTime.Format(time.RFC3339), Pending)
+			INSERT INTO downloads (FileName, URL, Dir, ContentLength, DateAndTime, Status, TempFilePath)
+			VALUES (?, ?, ?, 0, ?, ?, ?);
+		`, downloadItem.FileName, downloadItem.URL, downloadItem.Dir, downloadItem.DateAndTime.Format(time.RFC3339), Pending, tempFilePath)
 		if err != nil {
 			return err
 		}
@@ -112,44 +121,33 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		return nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		downloadItem.Update(0, 0, 0, err)
+		return downloadItem
 	}
-	downloadItem.Updates <- DownloadItemUpdate{
-		DownloadID: downloadItem.ID,
-		Status:     Pending,
-	}
+	downloadItem.Update(0, 0, 0, nil)
 	return downloadItem
-}
-
-// tempDir returns the temDir location.
-func (di *DownloadItem) tempDir() string {
-	tempDir := filepath.Join(os.TempDir(), "DownloadManager", strconv.Itoa(int(di.ID)))
-	os.MkdirAll(tempDir, 0o700)
-	return tempDir
 }
 
 func (di *DownloadItem) changeStatus(status DownloadStatus) error {
 	di.Status = status
-	return Sqlite.Execute(func(db *sql.DB) error {
+	return Sqlite.Execute(func(db *sqlx.DB) error {
 		_, err := db.Exec(fmt.Sprintf(`
 			UPDATE downloads SET Status = %v WHERE ID = %v	
 		`, int(status), di.ID))
-		if err != nil {
-			log.Println("Downloading Status updating error.")
-		}
 		return err
 	})
 }
 
 type DownloadItemJson struct {
-	ID             int64  `json:"id"`
-	FileName       string `json:"file-name"`
-	URL            string `json:"url"`
-	Dir            string `json:"dir"`
-	ContentLength  int64  `json:"content-length"`
-	DateAndTime    string `json:"date-and-time"`
-	Status         string `json:"status"`
-	PartialContent bool   `json:"partial-content"`
+	ID             int64  `json:"id" db:"ID"`
+	FileName       string `json:"file-name" db:"FileName"`
+	URL            string `json:"url" db:"URL"`
+	Dir            string `json:"dir" db:"Dir"`
+	ContentLength  int64  `json:"content-length" db:"ContentLength"`
+	DateAndTime    string `json:"date-and-time" db:"DateAndTime"`
+	Status         string `json:"status" db:"Status"`
+	PartialContent bool   `json:"partial-content" db:"FileName"`
+	TempFilePath   string `db:"TempFilePath"`
 }
 
 func (di *DownloadItem) JSON() DownloadItemJson {
