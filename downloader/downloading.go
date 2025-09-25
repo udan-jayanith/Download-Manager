@@ -14,22 +14,19 @@ func (di *DownloadItem) download() {
 	di.Status = Downloading
 	di.updateStatus()
 
-	tempFile, err := os.OpenFile(di.TempFilePath, os.O_RDWR, 0777)
+	downloadReq, err := httpDownloadReq(di.URL, di.TempFilePath)
 	if err != nil {
 		di.Update(0, 0, 0, err)
-		di.Status = Complete
-		di.updateStatus()
 		return
 	}
-	defer tempFile.Close()
-
-	req, err := http.NewRequest("GET", di.URL, nil)
-	req.Header.Add("Range", "bytes=0")
+	di.PartialContent = downloadReq.PartialContent
+	di.ContentLength = int64(downloadReq.ContentLength)
+	di.updateContentLength()
 
 	cancelChan := make(chan struct{})
-	download(req, tempFile, di, cancelChan)
+	download(downloadReq.Req, di.TempFilePath, di, cancelChan)
 	close(cancelChan)
-	tempFile.Close()
+	di.updateContentLength()
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -47,30 +44,35 @@ func (di *DownloadItem) download() {
 	di.TempFilePath = ""
 	di.updateTempFilepath()
 
-	di.updateContentLength()
 	di.Status = Complete
+	di.updateStatus()
 
 	di.Update(0, 0, 0, nil)
 }
 
 type UpdateChan interface {
 	Update(bps, length, estimatedTime int, err error)
-	setContentLength(contentLength int64)
 }
 
-func download(req *http.Request, destFile *os.File, updates UpdateChan, cancelChan chan struct{}) {
+func download(req *http.Request, destFilepath string, updates UpdateChan, cancelChan chan struct{}) {
+	destFile, err := os.OpenFile(destFilepath, os.O_RDWR, 0777)
+	if err != nil {
+		updates.Update(0, 0, 0, err)
+		return
+	}
+	defer destFile.Close()
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		updates.Update(0, 0, 0, err)
-		return 
+		return
 	}
 	defer res.Body.Close()
 
 	contentLength, err := strconv.Atoi(res.Header.Get("Content-Length"))
-	updates.setContentLength(int64(contentLength))
 	if err != nil {
 		updates.Update(0, 0, 0, err)
-		return 
+		return
 	}
 
 	rd := bufio.NewReader(res.Body)
@@ -116,4 +118,57 @@ loop:
 			t = time.Now()
 		}
 	}
+}
+
+func getHttpReqHeader(url string) (*http.Response, error) {
+	res, err := http.Get(url)
+	res.Body.Close()
+	return res, err
+}
+
+type DownloadReq struct {
+	Req            *http.Request
+	ContentLength  int
+	PartialContent bool
+}
+
+func httpDownloadReq(url string, destFilepath string) (DownloadReq, error) {
+	downloadReq := *new(DownloadReq)
+
+	res, err := getHttpReqHeader(url)
+	if err != nil {
+		return downloadReq, err
+	}
+
+	//Set contentLength
+	contentLength, err := strconv.Atoi(res.Header.Get("Content-Length"))
+	downloadReq.ContentLength = contentLength
+	if err != nil {
+		return downloadReq, err
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	downloadReq.Req = req
+
+	//Set partialContent
+	if res.Header.Get("") == "bytes" {
+		stat, err := os.Stat(destFilepath)
+		if err != nil {
+			return downloadReq, err
+		}
+
+		startingPosition := stat.Size()
+		if startingPosition > 0 {
+			startingPosition++
+		}
+
+		req.Header.Add("Range", fmt.Sprintf(`bytes=%v-%v`, startingPosition, contentLength-1))
+		downloadReq.PartialContent = true
+	} else {
+		err := os.Truncate(destFilepath, 0)
+		if err != nil {
+			return downloadReq, err
+		}
+	}
+	return downloadReq, err
 }
