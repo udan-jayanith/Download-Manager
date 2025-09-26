@@ -85,8 +85,6 @@ func download(req *http.Request, destFilepath string, updates UpdateChan, cancel
 
 	updates.ChangeStatus(Downloading)
 	for {
-		time.Sleep(time.Millisecond)
-
 		p := make([]byte, 1024)
 		n1, err := rd.Read(p)
 		if err != nil {
