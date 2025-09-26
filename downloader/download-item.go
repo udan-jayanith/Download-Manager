@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -17,6 +18,34 @@ const (
 	Complete
 	Paused
 )
+
+func DownloadStatusToString(status DownloadStatus) string {
+	switch status {
+	case Pending:
+		return "pending"
+	case Downloading:
+		return "downloading"
+	case Complete:
+		return "complete"
+	case Paused:
+		return "paused"
+	}
+	return ""
+}
+
+func DownloadStatusParse(status string) DownloadStatus {
+	switch status {
+	case "pending":
+		return Pending
+	case "downloading":
+		return Downloading
+	case "complete":
+		return Complete
+	case "paused":
+		return Paused
+	}
+	return -1
+}
 
 type DownloadItemUpdate struct {
 	DownloadID     int64          `json:"download-id"` //required
@@ -53,33 +82,25 @@ func (diu *DownloadItemUpdate) JSON() ([]byte, error) {
 	} else {
 		updateJson.Err = ""
 	}
-
-	switch diu.Status {
-	case Pending:
-		updateJson.Status = "pending"
-	case Downloading:
-		updateJson.Status = "downloading"
-	case Complete:
-		updateJson.Status = "complete"
-	case Paused:
-		updateJson.Status = "paused"
-	}
+	updateJson.Status = DownloadStatusToString(diu.Status)
 
 	return json.Marshal(&updateJson)
 }
 
 type DownloadItem struct {
-	ID       int64
-	FileName string
-	URL      string
-	Dir      string
-	//ContentLength length should be updated after the complete download.
+	ID             int64
+	FileName       string
+	URL            string
+	Dir            string
+	PartialContent bool
 	ContentLength  int64
 	DateAndTime    time.Time
 	Status         DownloadStatus
-	Updates        chan DownloadItemUpdate
-	TempFilePath   string
-	PartialContent bool
+
+	Updates      chan DownloadItemUpdate
+	TempFilePath string
+	cancel       chan struct{}
+	deleted      bool
 }
 
 func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
@@ -91,6 +112,9 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		Status:         Pending,
 		Updates:        make(chan DownloadItemUpdate, 8),
 		PartialContent: false,
+
+		cancel:  make(chan struct{}, 1),
+		deleted: false,
 	}
 
 	tempFile, err := os.CreateTemp(os.TempDir(), "Download-Manager")
@@ -100,6 +124,7 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 		downloadItem.Update(0, 0, 0, err)
 		return downloadItem
 	}
+	downloadItem.updateTempFilepath()
 
 	err = Sqlite.Execute(func(db *sqlx.DB) error {
 		results, err := db.Exec(`
@@ -137,6 +162,11 @@ func (di *DownloadItem) updateStatus() error {
 	})
 }
 
+func (di *DownloadItem) ChangeStatus(status DownloadStatus) error {
+	di.Status = status
+	return di.updateStatus()
+}
+
 func (di *DownloadItem) updateContentLength() error {
 	return Sqlite.Execute(func(db *sqlx.DB) error {
 		_, err := db.Exec(`
@@ -155,6 +185,28 @@ func (di *DownloadItem) updateTempFilepath() error {
 	})
 }
 
+func (di *DownloadItem) Cancel() {
+	di.deleted = true
+	di.cancel <- struct{}{}
+}
+
+func (di *DownloadItem) Delete() {
+	os.Remove(di.TempFilePath)
+	os.Remove(filepath.Join(di.Dir, di.FileName))
+
+	Sqlite.Execute(func(db *sqlx.DB) error {
+		_, err := db.Exec(`
+			DELETE FROM downloads WHERE ID = ?;
+		`, di.ID)
+		return err
+	})
+}
+
+func (di *DownloadItem) Close() {
+	close(di.cancel)
+	close(di.Updates)
+}
+
 type DownloadItemJson struct {
 	ID             int64  `json:"id" db:"ID"`
 	FileName       string `json:"file-name" db:"FileName"`
@@ -167,6 +219,31 @@ type DownloadItemJson struct {
 	TempFilePath   string `db:"TempFilePath"`
 }
 
+func (dij *DownloadItemJson) ToDownloadItem() (downloadItem DownloadItem, err error) {
+	downloadItem = DownloadItem{
+		ID:             dij.ID,
+		FileName:       dij.FileName,
+		URL:            dij.URL,
+		Dir:            dij.Dir,
+		PartialContent: dij.PartialContent,
+		ContentLength:  dij.ContentLength,
+		TempFilePath:   dij.TempFilePath,
+
+		deleted: false,
+		Updates: make(chan DownloadItemUpdate, 8),
+		cancel:  make(chan struct{}, 1),
+	}
+	//Date and time and Status
+	t, err := time.Parse(time.RFC3339, dij.DateAndTime)
+	if err != nil {
+		return downloadItem, err
+	}
+	downloadItem.DateAndTime = t
+	downloadItem.Status = DownloadStatusParse(dij.Status)
+
+	return downloadItem, nil
+}
+
 func (di *DownloadItem) JSON() DownloadItemJson {
 	var v DownloadItemJson
 	v.ID = di.ID
@@ -175,16 +252,7 @@ func (di *DownloadItem) JSON() DownloadItemJson {
 	v.Dir = di.Dir
 	v.ContentLength = di.ContentLength
 	v.DateAndTime = di.DateAndTime.Format(time.RFC3339)
-	switch di.Status {
-	case Pending:
-		v.Status = "pending"
-	case Downloading:
-		v.Status = "downloading"
-	case Complete:
-		v.Status = "complete"
-	case Paused:
-		v.Status = "paused"
-	}
+	v.Status = DownloadStatusToString(di.Status)
 	v.PartialContent = di.PartialContent
 
 	return v
@@ -202,9 +270,4 @@ func (di *DownloadItem) Update(bps, length, estimatedTime int, err error) {
 		EstimatedTime: estimatedTime,
 		Err:           err,
 	}
-}
-
-func (di *DownloadItem) setContentLength(contentLength int64){
-	di.ContentLength = contentLength
-	di.updateContentLength()
 }

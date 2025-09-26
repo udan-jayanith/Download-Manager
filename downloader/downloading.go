@@ -11,9 +11,7 @@ import (
 )
 
 func (di *DownloadItem) download() {
-	di.Status = Downloading
-	di.updateStatus()
-
+	defer di.Close()
 	downloadReq, err := httpDownloadReq(di.URL, di.TempFilePath)
 	if err != nil {
 		di.Update(0, 0, 0, err)
@@ -23,11 +21,10 @@ func (di *DownloadItem) download() {
 	di.ContentLength = int64(downloadReq.ContentLength)
 	di.updateContentLength()
 
-	cancelChan := make(chan struct{})
-	download(downloadReq.Req, di.TempFilePath, di, cancelChan)
-	close(cancelChan)
-	di.updateContentLength()
-
+	download(downloadReq.Req, di.TempFilePath, di, di.cancel)
+	if di.Status == Paused {
+		return
+	}
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		di.Update(0, 0, 0, err)
@@ -40,21 +37,20 @@ func (di *DownloadItem) download() {
 		di.Update(0, 0, 0, err)
 		return
 	}
-
 	di.TempFilePath = ""
 	di.updateTempFilepath()
-
-	di.Status = Complete
-	di.updateStatus()
 
 	di.Update(0, 0, 0, nil)
 }
 
 type UpdateChan interface {
 	Update(bps, length, estimatedTime int, err error)
+	ChangeStatus(status DownloadStatus) error
 }
 
 func download(req *http.Request, destFilepath string, updates UpdateChan, cancelChan chan struct{}) {
+	updates.ChangeStatus(Pending)
+
 	destFile, err := os.OpenFile(destFilepath, os.O_RDWR, 0777)
 	if err != nil {
 		updates.Update(0, 0, 0, err)
@@ -80,7 +76,7 @@ func download(req *http.Request, destFilepath string, updates UpdateChan, cancel
 	bps := 0
 	length := 0
 
-loop:
+	updates.ChangeStatus(Downloading)
 	for {
 		p := make([]byte, 1024)
 		n1, err := rd.Read(p)
@@ -90,7 +86,9 @@ loop:
 
 		select {
 		case <-cancelChan:
-			break loop
+			updates.ChangeStatus(Paused)
+			updates.Update(0, 0, 0, nil)
+			return
 		default:
 		}
 
@@ -118,9 +116,10 @@ loop:
 			t = time.Now()
 		}
 	}
+	updates.ChangeStatus(Complete)
 }
 
-func getHttpReqHeader(url string) (*http.Response, error) {
+func getHttpReqRes(url string) (*http.Response, error) {
 	res, err := http.Get(url)
 	res.Body.Close()
 	return res, err
@@ -135,7 +134,7 @@ type DownloadReq struct {
 func httpDownloadReq(url string, destFilepath string) (DownloadReq, error) {
 	downloadReq := *new(DownloadReq)
 
-	res, err := getHttpReqHeader(url)
+	res, err := getHttpReqRes(url)
 	if err != nil {
 		return downloadReq, err
 	}
@@ -151,7 +150,7 @@ func httpDownloadReq(url string, destFilepath string) (DownloadReq, error) {
 	downloadReq.Req = req
 
 	//Set partialContent
-	if res.Header.Get("") == "bytes" {
+	if res.Header.Get("Accept-Ranges") == "bytes" || res.StatusCode == http.StatusPartialContent {
 		stat, err := os.Stat(destFilepath)
 		if err != nil {
 			return downloadReq, err

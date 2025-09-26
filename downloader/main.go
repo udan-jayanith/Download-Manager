@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"net/http"
@@ -79,7 +80,56 @@ func main() {
 	http.HandleFunc("/get-downloads", getDownloads)
 	http.HandleFunc("/get-downloading", getDownloading)
 	http.HandleFunc("/search-downloads", searchDownload)
-	http.HandleFunc("/", getDownloading)
+
+	http.HandleFunc("/pause", func(w http.ResponseWriter, r *http.Request) {
+		downloadID, err := strconv.Atoi(r.FormValue("download-id"))
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		}
+
+		downloadItem, ok := downloadWorkPool.GetDownloadItem(int64(downloadID))
+		if !ok {
+			return
+		} else if !downloadItem.PartialContent {
+			WriteError(w, "Pause is not supported.")
+			return
+		}
+		downloadItem.Cancel()
+	})
+
+	http.HandleFunc("/resume", func(w http.ResponseWriter, r *http.Request) {
+		downloadID, err := strconv.Atoi(r.FormValue("download-id"))
+		if err != nil {
+			WriteError(w, "Missing download-id")
+			return
+		}
+
+		var downloadItemJson DownloadItemJson
+		err = Sqlite.Execute(func(db *sqlx.DB) error {
+			return db.Get(&downloadItemJson, `
+				SELECT * FROM downloads WHERE ID = ? LIMIT 1;
+			`, downloadID)
+		})
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		} else if downloadItemJson.URL == "" {
+			WriteError(w, "URL is not found.")
+			return
+		}
+
+		downloadItem, err := downloadItemJson.ToDownloadItem()
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		}
+
+		downloadWorkPool.Download(downloadItem)
+	})
+
+	http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {})
+
 	http.ListenAndServe(os.Getenv("port"), nil)
 }
 
@@ -154,6 +204,7 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, err.Error())
 			return
 		}
+		log.Println(dateAndTime)
 	}
 
 	w.Header().Add("Content-Type", "application/json")
