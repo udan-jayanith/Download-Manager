@@ -71,13 +71,22 @@ func download(req *http.Request, destFilepath string, updates UpdateChan, cancel
 		return
 	}
 
+	destFileStat, err := destFile.Stat()
+	if err != nil {
+		updates.Update(0, 0, 0, err)
+		return
+	}
+	destFile.Seek(destFileStat.Size(), 0)
+
 	rd := bufio.NewReader(res.Body)
 	t := time.Now()
 	bps := 0
-	length := 0
+	length := int(destFileStat.Size())
 
 	updates.ChangeStatus(Downloading)
 	for {
+		time.Sleep(time.Millisecond)
+
 		p := make([]byte, 1024)
 		n1, err := rd.Read(p)
 		if err != nil {
@@ -156,12 +165,7 @@ func httpDownloadReq(url string, destFilepath string) (DownloadReq, error) {
 			return downloadReq, err
 		}
 
-		startingPosition := stat.Size()
-		if startingPosition > 0 {
-			startingPosition++
-		}
-
-		req.Header.Add("Range", fmt.Sprintf(`bytes=%v-%v`, startingPosition, contentLength-1))
+		req.Header.Add("Range", fmt.Sprintf(`bytes=%v-%v`, stat.Size(), contentLength-1))
 		downloadReq.PartialContent = true
 	} else {
 		err := os.Truncate(destFilepath, 0)
