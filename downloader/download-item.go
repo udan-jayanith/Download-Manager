@@ -190,6 +190,7 @@ func (di *DownloadItem) Cancel() {
 	di.cancel <- struct{}{}
 }
 
+// Delete delete the downloadItem from the database. This also delete the save files and any files created.
 func (di *DownloadItem) Delete() {
 	os.Remove(di.TempFilePath)
 	os.Remove(filepath.Join(di.Dir, di.FileName))

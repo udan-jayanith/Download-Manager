@@ -16,13 +16,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-/*
-# TODOS
-* Close channels and update the db when a download is completed with the content length ot the package.
-* Get-downloading, get-downloads endpoints.
-* Password protection.
-*/
-
 var (
 	_                = godotenv.Load("./.env")
 	downloadWorkPool = NewDownloadWorkPool()
@@ -128,7 +121,32 @@ func main() {
 		downloadWorkPool.Download(downloadItem)
 	})
 
-	http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {})
+	http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+		downloadId, err := strconv.Atoi(r.FormValue("download-id"))
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		}
+
+		var downloadItemJson DownloadItemJson
+		err = Sqlite.Execute(func(db *sqlx.DB) error {
+			return db.Get(&downloadItemJson, `
+				SELECT * FROM downloads WHERE ID = ? LIMIT 1;
+			`, downloadId)
+		})
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		}
+
+		downloadItem, err := downloadItemJson.ToDownloadItem()
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		}
+
+		downloadItem.Delete()
+	})
 
 	http.ListenAndServe(os.Getenv("port"), nil)
 }
@@ -266,3 +284,5 @@ func searchDownload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&searchResults)
 }
+
+//func HandleCorruptions()
