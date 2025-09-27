@@ -24,6 +24,7 @@ var (
 		updatesChan:    downloadWorkPool.Updates,
 		conns:          make(map[*websocket.Conn]struct{}, 1),
 	}
+	token = ""
 )
 
 func main() {
@@ -46,6 +47,53 @@ func main() {
 		log.Println("downloads table SQL execution error")
 		log.Fatal(err)
 	}
+
+	err = Sqlite.Execute(func(db *sqlx.DB) error {
+		_, err := db.Exec(`
+			UPDATE downloads SET Status = ?
+			WHERE Status = ? OR Status = ?;	
+		`, Paused, Downloading, Pending)
+		return err
+	})
+	if err != nil {
+		log.Println("downloads table corruptions fix error")
+		log.Fatal(err)
+	}
+
+	err = Sqlite.Execute(func(db *sqlx.DB) error {
+		_, err := db.Exec(`
+			CREATE TABLE IF NOT EXISTS token (Token TEXT NOT NULL);
+		`)
+		return err
+	})
+	if err != nil {
+		log.Println("token table SQL execution error")
+		log.Fatal(err)
+	}
+
+	var rowCount int
+	err = Sqlite.Execute(func(db *sqlx.DB) error {
+		row := db.QueryRow(`
+			SELECT COUNT(Token) FROM token;
+		`)
+		return row.Scan(&rowCount)
+	})
+	if err != nil {
+		log.Println("token table SQL execution error")
+		log.Fatal(err)
+	} else if rowCount <= 0 {
+		saveToken(newToken())
+	}
+
+	token, err = getToken()
+	if err != nil {
+		log.Println("token table SQL execution error")
+		log.Fatal(err)
+	}
+
+	fs := http.FileServer(http.Dir("./pages"))
+	http.Handle("/pages/", http.StripPrefix("/pages/", fs))
+	http.HandleFunc("/get-token", HttpTokenHandler)
 
 	updatesHandler.Handle()
 
@@ -75,6 +123,11 @@ func main() {
 	http.HandleFunc("/search-downloads", searchDownload)
 
 	http.HandleFunc("/pause", func(w http.ResponseWriter, r *http.Request) {
+		AllowCrossOrigin(w)
+		if !RequireAuthenticationToken(w, r) {
+			return
+		}
+
 		downloadID, err := strconv.Atoi(r.FormValue("download-id"))
 		if err != nil {
 			WriteError(w, err.Error())
@@ -92,6 +145,11 @@ func main() {
 	})
 
 	http.HandleFunc("/resume", func(w http.ResponseWriter, r *http.Request) {
+		AllowCrossOrigin(w)
+		if !RequireAuthenticationToken(w, r) {
+			return
+		}
+
 		downloadID, err := strconv.Atoi(r.FormValue("download-id"))
 		if err != nil {
 			WriteError(w, "Missing download-id")
@@ -122,6 +180,11 @@ func main() {
 	})
 
 	http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+		AllowCrossOrigin(w)
+		if !RequireAuthenticationToken(w, r) {
+			return
+		}
+
 		downloadId, err := strconv.Atoi(r.FormValue("download-id"))
 		if err != nil {
 			WriteError(w, err.Error())
@@ -167,11 +230,15 @@ func WriteError(w http.ResponseWriter, errorMsg string) {
 }
 
 func downloadHandler(w http.ResponseWriter, r *http.Request) {
+	AllowCrossOrigin(w)
+	if !RequireAuthenticationToken(w, r) {
+		return
+	}
+
 	type request struct {
 		FileName string `json:"file-name"`
 		URL      string `json:"url"`
 		Dir      string `json:"dir"`
-		Password string `json:"password"`
 	}
 
 	var req request
@@ -181,18 +248,15 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Password != os.Getenv("password") {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-	AllowCrossOrigin(w)
-
 	downloadItem := NewDownloadItem(req.FileName, req.Dir, req.URL)
 	downloadWorkPool.Download(downloadItem)
 }
 
 func getDownloads(w http.ResponseWriter, r *http.Request) {
 	AllowCrossOrigin(w)
+	if !RequireAuthenticationToken(w, r) {
+		return
+	}
 
 	limit := 20
 	dateAndTime := r.FormValue("date-and-time")
@@ -231,6 +295,9 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 
 func getDownloading(w http.ResponseWriter, r *http.Request) {
 	AllowCrossOrigin(w)
+	if !RequireAuthenticationToken(w, r) {
+		return
+	}
 
 	jsonRes := struct {
 		DownloadingItems []DownloadItemJson `json:"downloading-items"`
@@ -257,6 +324,11 @@ func getDownloading(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchDownload(w http.ResponseWriter, r *http.Request) {
+	AllowCrossOrigin(w)
+	if !RequireAuthenticationToken(w, r) {
+		return
+	}
+
 	query := strings.TrimSpace(r.FormValue("query"))
 	if query == "" {
 		WriteError(w, "Missing query")
@@ -284,5 +356,3 @@ func searchDownload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&searchResults)
 }
-
-//func HandleCorruptions()

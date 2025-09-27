@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Download Manager - Token</title>
+		<link rel="shortcut icon" href="../favicon.png" type="image/x-icon" />
+
+		<!--Icons-->
+		<link
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+			rel="stylesheet" />
+
+		<!--Google fonts-->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+			rel="stylesheet" />
+
+		<!--Styles-->
+		<link rel="stylesheet" href="../main.css" />
+		<link rel="stylesheet" href="token.css" />
+	</head>
+	<body>
+		<main>
+			<p class="message">
+				You can use the token below to give access to applications.
+				Do not share this token.
+			</p>
+			<div class="token-container">
+				<div class="token">lkjhgfdss</div>
+				<div class="copy-token-btn" title="copy token">
+					<i class="fa-solid fa-copy"></i>
+				</div>
+			</div>
+		</main>
+		<script>
+			fetch(window.location.origin + '/' + 'get-token').then(async (res) => {
+				let json = await res.json()
+				document.querySelector('.token').innerText = json.token
+			})
+
+			let tokenCopyBtn = document.querySelector('.copy-token-btn')
+			tokenCopyBtn.addEventListener('click', async () => {
+				let tokenEl = document.querySelector('.token')
+				navigator.clipboard.writeText(tokenEl.innerText)
+			})
+		</script>
+	</body>
+</html>
