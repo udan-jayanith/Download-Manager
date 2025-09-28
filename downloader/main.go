@@ -286,7 +286,6 @@ func getDownloads(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, err.Error())
 			return
 		}
-		log.Println(dateAndTime)
 	}
 
 	w.Header().Add("Content-Type", "application/json")

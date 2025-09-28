@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -47,9 +48,14 @@ func HttpTokenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func RequireAuthenticationToken(w http.ResponseWriter, r *http.Request) (ok bool) {
+	authToken := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if authToken == token {
+		return true
+	}
+
 	cookieToken, err := r.Cookie("token")
 	if err == http.ErrNoCookie {
-		WriteError(w, "No token found.")
+		WriteError(w, err.Error())
 		return false
 	} else if err != nil {
 		WriteError(w, err.Error())
