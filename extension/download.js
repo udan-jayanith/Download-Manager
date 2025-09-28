@@ -28,8 +28,15 @@ let downloader = {
 		}
 	},
 	download: async function (downloadReq) {},
-	downloadUpdateCallbacks: [],
-	downloadUpdates: async function (callback) {},
+	/*
+	updates: {
+		callbacks: [],
+		waUpdates: new WebSocket('http://localhost:1616/wa/updates'),
+		onUpdate: function (callback) {
+			this.callbacks.push(callback)
+		},
+	},
+	*/
 	getDownloads: async function (dateAndTime) {
 		let url = new URL('http://localhost:1616//get-downloads')
 		if (dateAndTime != undefined) {
@@ -97,3 +104,20 @@ chrome.runtime.onConnect.onPort('downloader.search', (port) => {
 		port.postMessage(results)
 	})
 })
+
+/*
+downloader.updates.addEventListener('message', (e) => {
+	downloader.updates.callbacks((callback) => {
+		callback(e.data)
+	})
+})
+*/
+
+/*
+chrome.runtime.onConnect.onPort('downloader.waUpdates', (port) => {
+	downloader.updates.onUpdate((update) => {
+		port.postMessage(update)
+	})
+})
+
+*/

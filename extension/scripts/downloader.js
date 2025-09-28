@@ -76,4 +76,14 @@ let downloader = {
 			})
 		},
 	},
+
+	/*
+	updates: {
+		port: chrome.runtime.connect({name: 'downloader.waUpdates'}),
+		callbacks: [],
+		onUpdate: function (callback) {
+			this.callbacks.push(callback)
+		},
+	},
+	*/
 }
