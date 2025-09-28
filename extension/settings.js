@@ -1,4 +1,7 @@
 let settings = {
+	cookies: {
+		token: '',
+	},
 	mediaTypes: {},
 	logWebRequest: false,
 	useSyncSettings: true,

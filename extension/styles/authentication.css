@@ -1,0 +1,19 @@
+.token-container {
+	width: 100%;
+	height: fit-content;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 10px;
+    font: inherit;
+
+	a {
+		outline: none;
+	}
+
+	p {
+		margin: 0px;
+	}
+}

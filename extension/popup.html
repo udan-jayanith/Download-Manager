@@ -21,6 +21,7 @@
 		<link rel="stylesheet" href="styles/resources-tab.css" />
 		<link rel="stylesheet" href="styles/download-tab.css" />
 		<link rel="stylesheet" href="styles/settings-tab.css" />
+		<link rel="stylesheet" href="styles/authentication.css" />
 	</head>
 	<body>
 		<nav class="flex-center">
@@ -216,6 +217,19 @@
 			</div>
 		</template>
 
+		<dialog class="token-popup">
+			<div class="token-container">
+				<p>
+					Enter the token. You can receive your token from
+					<a href="http://localhost:1616/pages/token/" target="_blank">here</a>.
+				</p>
+				<input type="text" placeholder="Token" />
+				<button class="token-popup-done-btn">Done</button>
+			</div>
+		</dialog>
+
+		<script src="scripts/authentication.js"></script>
+		<script src="scripts/downloader.js"></script>
 		<script src="scripts/main.js"></script>
 		<script src="scripts/nav.js"></script>
 		<script src="scripts/settings-tab.js"></script>

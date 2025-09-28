@@ -9,7 +9,7 @@
 	"action": {
 		"default_popup": "popup.html"
 	},
-	"permissions": ["webRequest", "activeTab", "storage", "downloads"],
+	"permissions": ["webRequest", "activeTab", "storage", "downloads", "notifications", "cookies"],
 	"host_permissions": ["<all_urls>"],
 	"background": {
 		"service_worker": "service-worker.js"

@@ -27,3 +27,13 @@ function getInputValue(event) {
 	}
 	return event.target.value
 }
+
+async function notifyError(errObj) {
+	console.assert(errObj.error != undefined)
+	return chrome.notifications.create(null, {
+		title: 'Error',
+		message: errObj.error,
+		iconUrl: 'http://localhost:1616/pages/favicon.png',
+		type: 'basic',
+	})
+}

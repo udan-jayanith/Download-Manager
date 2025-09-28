@@ -146,7 +146,7 @@ chrome.runtime.onConnect.addListener(function (port) {
 	callback(port)
 })
 
-importScripts('./settings.js', './download.js')
+importScripts('./settings.js', './authentication.js', './download.js')
 
 let webRequests = {
 	arrayCap: 256,
