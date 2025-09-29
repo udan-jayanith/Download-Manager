@@ -104,6 +104,10 @@ message.onRequest('settings.get', (_, response) => {
 	return true
 })
 
+message.onRequest('settings.update', (settings) => {
+	updateSettings(settings)
+})
+
 chrome.runtime.onConnect.onPort('update-settings', (port) => {
 	port.onMessage.addListener((settings) => {
 		updateSettings(settings)
