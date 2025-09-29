@@ -97,8 +97,11 @@ async function updateSettings(settingsObj) {
 	settings = settingsObj
 }
 
-chrome.runtime.onConnect.onPort('get-settings', (port) => {
-	port.postMessage(settings)
+message.onRequest('settings.get', (_, response) => {
+	getSettings().then((settings) => {
+		response(settings)
+	})
+	return true
 })
 
 chrome.runtime.onConnect.onPort('update-settings', (port) => {

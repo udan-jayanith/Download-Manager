@@ -125,6 +125,7 @@ document.querySelector('.settings-tab').addEventListener('click', async () => {
 })
 
 async function getSettings() {
+	/*
 	let settingsPort = chrome.runtime.connect({name: 'get-settings'})
 	let settings = await new Promise((resolve) => {
 		settingsPort.onMessage.addListener((settings) => {
@@ -132,6 +133,8 @@ async function getSettings() {
 		})
 	})
 	return settings
+	*/
+	return message.request('settings.get')
 }
 
 async function updateSettings(settings) {
