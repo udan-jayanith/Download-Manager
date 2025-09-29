@@ -84,13 +84,8 @@ async function setResourcesTab() {
 }
 
 async function getWebRequests() {
-	let webRequestPort = chrome.runtime.connect({name: 'webRequests'})
-	let webRequests = await new Promise((resolve) => {
-		webRequestPort.onMessage.addListener((settings) => {
-			resolve(settings.webRequest)
-		})
-	})
-	return webRequests
+	let res = await message.request('webRequests')
+	return res.webRequest
 }
 
 async function resourcesSearch(query, selectedFilter) {

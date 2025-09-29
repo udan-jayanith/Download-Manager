@@ -149,7 +149,8 @@ chrome.runtime.onConnect.addListener(function (port) {
 importScripts(
 	'./settings.js',
 	'./authentication.js',
-	'./download.js'
+	'./download.js',
+	'./modules/Message-Passing/message.js'
 )
 
 let webRequests = {
@@ -207,8 +208,8 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 	currentTabId = activeInfo.tabId
 })
 
-chrome.runtime.onConnect.onPort('webRequests', (port) => {
-	port.postMessage({
+message.onRequest('webRequests', (_, response) => {
+	response({
 		webRequest: webRequests.get(currentTabId),
 	})
 })

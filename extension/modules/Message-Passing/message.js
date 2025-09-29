@@ -29,7 +29,7 @@ let message = {
 	},
 }
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(function (request, sender, response) {
 	if (request == undefined || request.header == undefined || request.body == undefined) {
 		return
 	}
@@ -41,10 +41,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 		return
 	}
 
-	let res = message.requests.get(requestName)(requestBody)
-	if (res == undefined) {
-		res = {}
-	}
-	console.assert(typeof res == 'object')
-	sendResponse(res)
+	let callback = message.requests.get(requestName)
+	console.assert(
+		callback.constructor.name != 'AsyncFunction',
+		callback,
+		'It self cannot be async.',
+		'If callback response to the request asynchronously it should return true. Default return value is false/undefined'
+	)
+	return callback(requestBody, response) == true
 })
