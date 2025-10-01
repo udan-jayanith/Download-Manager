@@ -1,20 +1,38 @@
 let tokenPopup = document.querySelector('.token-popup')
 tokenPopup.querySelector('.token-popup-done-btn').addEventListener('click', () => {
+	let warnEl = tokenPopup.querySelector('.warn')
 	let token = tokenPopup.querySelector('input').value
+
 	if (token.trim() == '') {
-		alert('Token is empty.')
+		showEl(warnEl)
+		warnEl.innerText = 'Token is empty'
 		return
 	}
 
-	let saveTokenPort = chrome.runtime.connect({name: 'save-token'})
-	saveTokenPort.postMessage({token: token})
-	tokenPopup.close()
+	saveAuthToken(token).then((err) => {
+		if (err != null) {
+			showEl(warnEl)
+			warnEl.innerText = err
+			return
+		}
+		tokenPopup.close()
+	})
 })
 
-let isAuthenticatedPort = chrome.runtime.connect({name: 'is-authenticated'})
-isAuthenticatedPort.onMessage.addListener((obj) => {
-	if (!obj.isAuthenticated) {
+async function saveAuthToken(token) {
+	let res = await message.request('authentication.save-token', {
+		token: token,
+	})
+	return res.error == undefined ? null : res.error
+}
+
+async function isAuthenticated() {
+	let res = await message.request('authentication.is-authenticated')
+	return res
+}
+
+isAuthenticated().then((res) => {
+	if (!res.isAuthenticated) {
 		tokenPopup.showModal()
 	}
 })
-

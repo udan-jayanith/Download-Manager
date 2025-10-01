@@ -161,9 +161,18 @@ button {
 	padding: 4px 10px;
 	min-width: 80px;
 	min-height: 24px;
-	&:hover{
+	&:hover {
 		color: white;
 		font-weight: bold;
 		background-color: #17ae8d;
 	}
+}
+
+.warn {
+	color: rgb(249, 43, 43);
+	font-size: 12px;
+}
+
+.hide {
+	display: none;
 }

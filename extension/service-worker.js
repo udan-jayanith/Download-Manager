@@ -133,6 +133,7 @@ function getFilenameData(details) {
 	return obj
 }
 
+//This api is being used by somewhere else find it and remove it.
 chrome.runtime.onConnect.ports = {}
 chrome.runtime.onConnect.onPort = function (portName, callback) {
 	chrome.runtime.onConnect.ports[portName] = callback
