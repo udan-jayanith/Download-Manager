@@ -25,26 +25,53 @@
 	<body>
 		<main>
 			<p class="message">
-				You can use the token below to give access to applications.
-				Do not share this token.
+				Use the token below to allow trusted applications to access your account.
+				<br />
+				<b> Keep it secure and do not share it publicly. </b>
+				<br />You can change this token at any time to revoke access.
 			</p>
 			<div class="token-container">
-				<div class="token">lkjhgfdss</div>
-				<div class="copy-token-btn" title="copy token">
-					<i class="fa-solid fa-copy"></i>
+				<div class="token"></div>
+				<div class="token-controls-container">
+					<i class="fa-solid fa-rotate-right update-token-btn" title="Change Token"></i>
+					<i class="fa-solid fa-copy copy-token-btn" title="Copy Token"></i>
 				</div>
 			</div>
 		</main>
 		<script>
-			fetch(window.location.origin + '/' + 'get-token').then(async (res) => {
-				let json = await res.json()
-				document.querySelector('.token').innerText = json.token
+			function getToken() {
+				return new Promise((resolve) => {
+					fetch(window.location.origin + '/' + 'token/get').then(async (res) => {
+						let json = await res.json()
+						console.assert(json.error == undefined, json.error)
+						resolve(json.token)
+					})
+				})
+			}
+
+			function displayToken(token) {
+				document.querySelector('.token').innerText = token
+			}
+
+			async function changeToken() {
+				await fetch(window.location.origin + '/token/change')
+				let token = await getToken()
+				displayToken(token)
+			}
+
+			getToken().then((token) => {
+				displayToken(token)
 			})
 
 			let tokenCopyBtn = document.querySelector('.copy-token-btn')
 			tokenCopyBtn.addEventListener('click', async () => {
-				let tokenEl = document.querySelector('.token')
-				navigator.clipboard.writeText(tokenEl.innerText)
+				let token = await getToken()
+				navigator.clipboard.writeText(token)
+			})
+
+			let updateTokenBtn = document.querySelector('.update-token-btn')
+			updateTokenBtn.addEventListener('click', async () => {
+				changeToken()
 			})
 		</script>
 	</body>
