@@ -35,17 +35,17 @@ let authenticateUser = {
 }
 
 async function addAuthorization(headers) {
-	headers.append('Authorization', `Bearer ${authenticateUser.getToken()}`)
+	headers.append('Authorization', `Bearer ${await authenticateUser.getToken()}`)
 	return headers
 }
 
-function fetchFromDownloader(resource, options = {}) {
+async function fetchFromDownloader(resource, options = {}) {
 	if (options.headers == null) {
 		options.headers = new Headers()
 	} else {
 		options.headers.delete('Authorization')
 	}
-	options.headers = addAuthorization(options.headers)
+	options.headers = await addAuthorization(options.headers)
 	return fetch(resource, options)
 }
 

@@ -149,9 +149,10 @@ chrome.runtime.onConnect.addListener(function (port) {
 
 importScripts(
 	'./modules/Message-Passing/message.js',
+	'./modules/Message-Passing/service-worker-msg-socket.js',
 	'./settings.js',
 	'./authentication.js',
-	'./download.js',
+	'./download.js'
 )
 
 let webRequests = {
