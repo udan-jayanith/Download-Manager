@@ -45,3 +45,28 @@ function hideEl(el) {
 function showEl(el) {
 	el.classList.remove('hide')
 }
+
+function decimalPoints(number, decimalPoints) {
+	console.assert(typeof number == 'number', "number must be a number of type 'number'.")
+	let str = String(number).split('.', 2)
+	if (str.length == 1 || decimalPoints <= 0) {
+		return Number(str[0])
+	}
+	return Number(str[0] + '.' + str[1].split('').splice(0, decimalPoints).join(''))
+}
+
+function dateAndTimeAgo(dateAndTime) {
+	let dt = luxon.DateTime.now().minus(luxon.DateTime.fromISO(dateAndTime).c).c
+	if (dt.year > 0) {
+		return `${dt.day}/${dt.month}/${dt.year} ago`
+	} else if (dt.month > 0) {
+		return `${dt.day}d ${dt.month}m ago`
+	} else if (dt.day > 0) {
+		return `${dt.day}d ago`
+	} else if (dt.hour > 0) {
+		return `${dt.hour}h ago`
+	} else if (dt.minute > 0) {
+		return `${dt.minute}m ago`
+	}
+	return `${dt.second}s ago`
+}

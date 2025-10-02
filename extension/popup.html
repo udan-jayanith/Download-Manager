@@ -58,22 +58,24 @@
 				<div class="downloaded-item-top">
 					<h4 class="download-file-name ellipsis-text">Downloaded file name</h4>
 					<div class="download-item-options">
-						<div title="Copy download link"><i class="fa-solid fa-link clickable-ico"></i></div>
-						<div title="Remove from the history">
+						<div title="Copy download link" class="copy-download-link-btn">
+							<i class="fa-solid fa-link clickable-ico"></i>
+						</div>
+						<div title="Remove from the history" class="delete-download-item-btn">
 							<i class="fa-solid fa-xmark clickable-ico"></i>
 						</div>
 					</div>
 				</div>
 				<div class="download-item-bottom">
 					<div class="meta-data-container">
-						<label for="estimated-time" title="Downloaded date"
+						<label for="downloaded-date" title="Downloaded date"
 							><i class="fa-solid fa-calendar"></i
 						></label>
-						<span id="estimated-time">Today</span>
+						<span id="downloaded-date" class="date-and-time">Today</span>
 					</div>
 					<div class="meta-data-container">
-						<label for="estimated-time" title="File size"><i class="fa-solid fa-file"></i></label>
-						<span id="estimated-time">2mb</span>
+						<label for="size" title="File size"><i class="fa-solid fa-file"></i></label>
+						<span id="size" class="file-size">2mb</span>
 					</div>
 				</div>
 			</div>
@@ -209,7 +211,9 @@
 				</div>
 				<div class="settings-item">
 					<label for="token-page">Token page</label>
-					<a href="http://localhost:1616/pages/token/" target="_blank" id="token-page">http://localhost:1616/pages/token</a>
+					<a href="http://localhost:1616/pages/token/" target="_blank" id="token-page"
+						>http://localhost:1616/pages/token</a
+					>
 				</div>
 			</div>
 		</template>
@@ -236,6 +240,9 @@
 
 		<script src="modules/Message-Passing/message.js"></script>
 		<script src="modules/Message-Passing/content-script-msg-socket.js"></script>
+		<script src="modules/units.js"></script>
+		<script src="modules/luxon.js"></script>
+
 		<script src="scripts/authentication.js"></script>
 		<script src="scripts/downloader.js"></script>
 		<script src="scripts/main.js"></script>
