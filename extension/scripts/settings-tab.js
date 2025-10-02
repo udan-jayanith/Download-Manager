@@ -125,18 +125,11 @@ document.querySelector('.settings-tab').addEventListener('click', async () => {
 })
 
 async function getSettings() {
-	let settingsPort = chrome.runtime.connect({name: 'get-settings'})
-	let settings = await new Promise((resolve) => {
-		settingsPort.onMessage.addListener((settings) => {
-			resolve(settings)
-		})
-	})
-	return settings
+	return message.request('settings.get')
 }
 
 async function updateSettings(settings) {
-	let port = chrome.runtime.connect({name: 'update-settings'})
-	port.postMessage(settings)
+	message.request('settings.update', settings)
 }
 
 function parseMediaTypes(inputStr) {

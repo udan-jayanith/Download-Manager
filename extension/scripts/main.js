@@ -37,3 +37,11 @@ async function notifyError(errObj) {
 		type: 'basic',
 	})
 }
+
+function hideEl(el) {
+	el.classList.add('hide')
+}
+
+function showEl(el) {
+	el.classList.remove('hide')
+}

@@ -1,11 +1,5 @@
-async function addAuthorization(headers) {
-	let settings = await getSettings()
-
-	headers.append('Authorization', `Bearer ${settings.cookies.token}`)
-	return headers
-}
-
 let downloader = {
+	origin: 'http://localhost:1616',
 	downloadStatus: function (status) {
 		switch (status) {
 			case 0:
@@ -27,97 +21,119 @@ let downloader = {
 			dir: dir,
 		}
 	},
-	download: async function (downloadReq) {},
-	/*
+	download: {
+		download: async function (downloadReq) {},
+		getDownloads: async function (dateAndTime) {
+			let url = new URL('http://localhost:1616/download/get-downloads')
+			if (dateAndTime != undefined) {
+				url.searchParams().append('date-and-time', dateAndTime)
+			}
+			let res = await fetchFromDownloader(url)
+			let json = await res.json()
+			return json
+		},
+		getDownloading: async function () {
+			let res = await fetchFromDownloader('http://localhost:1616/download/get-downloading')
+			let json = await res.json()
+			return json
+		},
+		searchDownloads: async function (query) {
+			let url = new URL('http://localhost:1616/download/search-downloads')
+			url.searchParams.append('query', query)
+			let res = await fetchFromDownloader(url)
+			let json = await res.json()
+			return json
+		},
+	},
 	updates: {
 		callbacks: [],
-		waUpdates: new WebSocket('http://localhost:1616/wa/updates'),
+		waUpdates: new WebSocket('http://localhost:1616/download/wa/updates'),
 		onUpdate: function (callback) {
 			this.callbacks.push(callback)
 		},
 	},
-	*/
-	getDownloads: async function (dateAndTime) {
-		let url = new URL('http://localhost:1616//get-downloads')
-		if (dateAndTime != undefined) {
-			url.searchParams().append('date-and-time', dateAndTime)
-		}
-
-		let headers = new Headers()
-		headers = await addAuthorization(headers)
-		let res = await fetch(url.href, {
-			headers: headers,
-		})
-		let json = await res.json()
-		return json
+	controls: {
+		pauseDownload: async function (downloadID) {
+			let url = new URL(`http://localhost:1616/download/pause`)
+			url.searchParams.append('download-id', downloadID)
+			let res = await fetchFromDownloader(url)
+			return res
+		},
+		resumeDownload: async function (downloadID) {
+			let url = new URL(`http://localhost:1616/download/resume`)
+			url.searchParams.append('download-id', downloadID)
+			let res = await fetchFromDownloader(url)
+			return res
+		},
+		deleteDownload: async function (downloadID) {
+			let url = new URL(`http://localhost:1616/download/delete`)
+			url.searchParams.append('download-id', downloadID)
+			let res = await fetchFromDownloader(url)
+			return res
+		},
 	},
-	getDownloading: async function () {
-		let url = new URL('http://localhost:1616/get-downloading')
-		let headers = await addAuthorization(new Headers())
-		let res = await fetch(url, {
-			headers: headers,
-		})
-		let json = await res.json()
-		return json
-	},
-	searchDownloads: async function (query) {
-		let url = new URL('http://localhost:1616/search-downloads')
-		url.searchParams.append('query', query)
-		let headers = await addAuthorization(new Headers())
-
-		let res = await fetch(url, {
-			headers: headers,
-		})
-		let json = await res.json()
-		return json
-	},
-
-	pauseDownload: async function (downloadID) {},
-	resumeDownload: async function (downloadID) {},
-	deleteDownload: async function (downloadID) {},
 }
 
-chrome.runtime.onConnect.onPort('downloader.get-downloads', (port) => {
-	port.onMessage.addListener(async (obj) => {
-		let downloads = null
-		let dateAndTime = obj == undefined ? undefined : obj.dateAndTime
-		if (dateAndTime != undefined && dateAndTime.trim() != '') {
-			downloads = await downloader.getDownloads()
-		} else {
-			downloads = await downloader.getDownloads(dateAndTime)
-		}
-		port.postMessage(downloads)
+//Downloads
+message.onRequest('downloader.download.download', (downloadReq, response) => {
+	downloader.download.download(downloadReq).then((res) => {
+		response(res)
+	})
+	return true
+})
+
+message.onRequest('downloader.download.get-downloads', ({dateAndTime}, response) => {
+	downloader.download.getDownloads(dateAndTime).then((res) => {
+		response(res)
+	})
+	return true
+})
+
+message.onRequest('downloader.download.get-downloading', (_, response) => {
+	downloader.download.getDownloading().then((res) => {
+		response(res)
+	})
+	return true
+})
+
+message.onRequest('downloader.download.search-downloads', ({query}, response) => {
+	downloader.download.searchDownloads(query).then((res) => {
+		response(res)
+	})
+	return true
+})
+
+//Controls
+message.onRequest('downloader.controls.pause', ({downloadID}, response) => {
+	downloader.controls.pauseDownload(downloadID).then((err) => {
+		response(err)
+	})
+	return true
+})
+
+message.onRequest('downloader.controls.resume', ({downloadID}, response) => {
+	downloader.controls.resumeDownload(downloadID).then((err) => {
+		response(err)
+	})
+	return true
+})
+
+message.onRequest('downloader.controls.delete', ({downloadID}, response) => {
+	downloader.controls.deleteDownload(downloadID).then((err) => {
+		response(err)
+	})
+	return true
+})
+
+//Downloading updates (wa updates)
+downloader.updates.waUpdates.addEventListener('message', ({data}) => {
+	downloader.updates.callbacks.forEach((callback) => {
+		callback(data)
 	})
 })
 
-chrome.runtime.onConnect.onPort('downloader.get-downloading', (port) => {
-	port.onMessage.addListener(async () => {
-		let downloading = await downloader.getDownloading()
-		port.postMessage(downloading)
+msgSocket.onConnect('downloader.downloading.updates', (conn) => {
+	downloader.updates.onUpdate((data) => {
+		conn.send(data)
 	})
 })
-
-chrome.runtime.onConnect.onPort('downloader.search', (port) => {
-	port.onMessage.addListener(async (obj) => {
-		console.assert(obj.query != undefined && typeof obj.query == 'string', 'Unexpected query.')
-		let results = await downloader.searchDownloads(obj.query)
-		port.postMessage(results)
-	})
-})
-
-/*
-downloader.updates.addEventListener('message', (e) => {
-	downloader.updates.callbacks((callback) => {
-		callback(e.data)
-	})
-})
-*/
-
-/*
-chrome.runtime.onConnect.onPort('downloader.waUpdates', (port) => {
-	downloader.updates.onUpdate((update) => {
-		port.postMessage(update)
-	})
-})
-
-*/
