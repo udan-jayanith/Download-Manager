@@ -46,15 +46,23 @@ let downloader = {
 			return res
 		},
 	},
-	controls: {},
-	updates: {},
-	/*
-	updates: {
-		port: chrome.runtime.connect({name: 'downloader.waUpdates'}),
-		callbacks: [],
-		onUpdate: function (callback) {
-			this.callbacks.push(callback)
+	controls: {
+		pause: async function (downloadID) {
+			let res = await message.request('downloader.controls.pause', {downloadID: downloadID})
+			return res
+		},
+		resume: async function (downloadID) {
+			let res = await message.request('downloader.controls.resume', {downloadID: downloadID})
+			return res
+		},
+		delete: async function (downloadID) {
+			let res = await message.request('downloader.controls.delete', {downloadID: downloadID})
+			return res
 		},
 	},
-	*/
+	updates: {
+		connect: function () {
+			return msgSocket.connect('downloader.downloading.updates')
+		},
+	},
 }
