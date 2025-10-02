@@ -20,63 +20,34 @@ let downloader = {
 		}
 	},
 
-	getDownloads: {
-		port: chrome.runtime.connect({name: 'downloader.get-downloads'}),
-		get: async function (dateAndTime) {
-			if (dateAndTime == null) {
-				this.port.postMessage({})
-			} else {
-				this.port.postMessage({
-					dateAndTime: dateAndTime,
-				})
-			}
-			return new Promise((resolve, reject) => {
-				this.port.onMessage.addListener((downloads) => {
-					if (downloads.error != undefined) {
-						reject(downloads)
-						return
-					}
-					resolve(downloads)
-				})
-			})
+	download: {
+		download: async function (downloadReq) {
+			console.assert(
+				typeof downloadReq == 'object',
+				'downloadReq must be a downloadReq of type object'
+			)
+			let res = await message.request('downloader.download.download', downloadReq)
+			return res
 		},
-	},
-
-	getDownloading: {
-		port: chrome.runtime.connect({name: 'downloader.get-downloading'}),
-		get: function () {
-			this.port.postMessage({})
-			return new Promise((resolve, reject) => {
-				this.port.onMessage.addListener((downloading) => {
-					if (downloading.error != undefined) {
-						reject(downloading)
-						return
-					}
-					resolve(downloading)
-				})
+		getDownloads: async function (dateAndTime) {
+			let res = await message.request('downloader.download.get-downloads', {
+				dateAndTime: dateAndTime,
 			})
+			return res
 		},
-	},
-
-	searchDownloads: {
-		port: chrome.runtime.connect({name: 'downloader.search'}),
-		get: function (query) {
-			console.assert(typeof query == 'string', 'Expected type of string query')
-			this.port.postMessage({
+		getDownloading: async function () {
+			let res = await message.request(`downloader.download.get-downloading`)
+			return res
+		},
+		searchDownload: async function (query) {
+			let res = await message.request('downloader.download.search-downloads', {
 				query: query,
 			})
-			return new Promise((resolve, reject) => {
-				this.port.onMessage.addListener((results) => {
-					if (results.error != null) {
-						reject(results)
-						return
-					}
-					resolve(results)
-				})
-			})
+			return res
 		},
 	},
-
+	controls: {},
+	updates: {},
 	/*
 	updates: {
 		port: chrome.runtime.connect({name: 'downloader.waUpdates'}),

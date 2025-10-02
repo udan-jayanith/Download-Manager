@@ -132,11 +132,7 @@ downloader.updates.waUpdates.addEventListener('message', ({data}) => {
 	})
 })
 
-new Promise((resolve) => {
-	msgSocket.onConnect('downloader.downloading.updates', (conn) => {
-		resolve(conn)
-	})
-}).then((conn) => {
+msgSocket.onConnect('downloader.downloading.updates', (conn) => {
 	downloader.updates.onUpdate((data) => {
 		conn.send(data)
 	})
