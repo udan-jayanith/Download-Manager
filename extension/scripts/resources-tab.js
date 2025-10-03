@@ -18,6 +18,8 @@ async function setResourcesTab() {
 			item
 				.querySelector('.fa-solid')
 				.classList.add(getItemIconClassName(settings.mediaTypes, el.extensionName))
+
+			item.querySelector('.copy-download-link-btn').dataset.url = el.url
 			resourcesContainer.appendChild(item)
 		})
 	}
@@ -48,6 +50,10 @@ async function setResourcesTab() {
 	let resourcesContainer = resourcesTabTemplate
 		.querySelector('.resources-container')
 		.cloneNode(true)
+
+	EventDelegation(resourcesContainer, '.copy-download-link-btn', 'click', (e) => {
+		navigator.clipboard.writeText(e.dataset.url)
+	})
 
 	let searchBarEl = searchBar.get()
 	let searchBarInput = searchBarEl.querySelector('input')

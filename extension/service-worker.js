@@ -183,6 +183,9 @@ let webRequests = {
 
 chrome.webRequest.onHeadersReceived.addListener(
 	async (details) => {
+		if (details.tabId == -1) {
+			return
+		}
 		let obj = getFilenameData(details)
 		if (obj.extensionName == '' && obj.fileName == '') {
 			return
