@@ -59,7 +59,12 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 	}
 
 	let lastDateAndTime = undefined
+	let rendering = false
 	function renderDownloaded() {
+		if (rendering) {
+			return
+		}
+		rendering = true
 		downloader.download.getDownloads(lastDateAndTime).then((res) => {
 			console.assert(res.error == undefined, res.error)
 			let list = res['download-items']
@@ -68,12 +73,14 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			}
 			lastDateAndTime = list[list.length - 1]['date-and-time']
 			renderDownloadedList(list)
+			rendering = false
 		})
 	}
 	renderDownloaded()
 
 	downloadsTabContainer.addEventListener('scroll', ({target}) => {
-		let scrollBottom = target.scrollHeight + target.scrollTop
+		//target.scrollHeight means full scrollable height.
+		let scrollBottom = target.offsetHeight + target.scrollTop
 		if (scrollBottom + (scrollBottom / 100) * 10 >= target.scrollHeight) {
 			renderDownloaded()
 		}
