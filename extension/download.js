@@ -26,7 +26,7 @@ let downloader = {
 		getDownloads: async function (dateAndTime) {
 			let url = new URL('http://localhost:1616/download/get-downloads')
 			if (dateAndTime != undefined) {
-				url.searchParams().append('date-and-time', dateAndTime)
+				url.searchParams.append('date-and-time', dateAndTime)
 			}
 			let res = await fetchFromDownloader(url)
 			let json = await res.json()

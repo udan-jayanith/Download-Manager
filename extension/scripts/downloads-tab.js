@@ -10,7 +10,6 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		let searchBarEl = searchBar.get()
 		downloadsTabContainer.prepend(searchBarEl)
 	}
-
 	EventDelegation(downloadsTabContainer, '.copy-download-link-btn', 'click', (el) => {
 		navigator.clipboard.writeText(el.dataset.url)
 	})
@@ -49,19 +48,36 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		return downloadedItem
 	}
 
-	function renderDownloadedList() {
+	function renderDownloadedList(list) {
 		let downloadedItemContainer = downloadsTabContainer.querySelector(
 			'.downloaded-item-container'
 		)
 		downloadedItemContainer.innerHTML = null
-		downloader.download.getDownloads().then((res) => {
-			console.assert(res.error == undefined, res.error)
-			res['download-items'].forEach((data) => {
-				downloadedItemContainer.appendChild(newDownloadedItem(data))
-			})
+		list.forEach((data) => {
+			downloadedItemContainer.appendChild(newDownloadedItem(data))
 		})
 	}
-	renderDownloadedList()
+
+	let lastDateAndTime = undefined
+	function renderDownloaded() {
+		downloader.download.getDownloads(lastDateAndTime).then((res) => {
+			console.assert(res.error == undefined, res.error)
+			let list = res['download-items']
+			if (list.length <= 0) {
+				return
+			}
+			lastDateAndTime = list[list.length - 1]['date-and-time']
+			renderDownloadedList(list)
+		})
+	}
+	renderDownloaded()
+
+	downloadsTabContainer.addEventListener('scroll', ({target}) => {
+		let scrollBottom = target.scrollHeight + target.scrollTop
+		if (scrollBottom + (scrollBottom / 100) * 10 >= target.scrollHeight) {
+			renderDownloaded()
+		}
+	})
 
 	//downloadingItem
 	{

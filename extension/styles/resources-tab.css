@@ -5,6 +5,8 @@
 	align-items: center;
 	padding: 10px;
 	gap: 10px;
+
+
 }
 
 .resources-item {
@@ -30,7 +32,7 @@
 	text-decoration: none;
 }
 
-.filter-tags-container{
+.filter-tags-container {
 	width: 100%;
 	display: flex;
 	justify-content: flex-start;
@@ -40,19 +42,19 @@
 	justify-items: center;
 	flex-wrap: wrap;
 	box-sizing: border-box;
-	.tag{
+	.tag {
 		padding: 4px 8px;
 		border-radius: 10px;
 		border: 1px solid var(--secondary-color);
 		cursor: pointer;
 		user-select: none;
-		&:hover{
+		&:hover {
 			background-color: #1fb39335;
 		}
 	}
 }
 
-.selected-tag{
+.selected-tag {
 	font-weight: bold;
 	color: var(--primary-color);
 }
