@@ -29,7 +29,7 @@ function getInputValue(event) {
 }
 
 async function notifyError(errObj) {
-	console.assert(errObj.error != undefined)
+	console.assert(errObj.error != undefined, 'error is undefined')
 	return chrome.notifications.create(null, {
 		title: 'Error',
 		message: errObj.error,
@@ -69,4 +69,14 @@ function dateAndTimeAgo(dateAndTime) {
 		return `${dt.minute}m ago`
 	}
 	return `${dt.second}s ago`
+}
+
+function EventDelegation(parentElement, elementSelector, eventType, callback) {
+	parentElement.addEventListener(eventType, (e) => {
+		let el = e.target.closest(elementSelector)
+		if (el == null) {
+			return
+		}
+		callback(el, e)
+	})
 }
