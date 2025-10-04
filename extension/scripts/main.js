@@ -46,6 +46,10 @@ function showEl(el) {
 	el.classList.remove('hide')
 }
 
+function toggleHide(el) {
+	el.classList.toggle('hide')
+}
+
 function decimalPoints(number, decimalPoints) {
 	console.assert(typeof number == 'number', "number must be a number of type 'number'.")
 	let str = String(number).split('.', 2)

@@ -5,12 +5,6 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		.querySelector('.downloads-tab-container')
 		.cloneNode(true)
 
-	//Search bear
-	{
-		let searchBarEl = searchBar.get()
-		downloadsTabContainer.prepend(searchBarEl)
-	}
-	
 	EventDelegation(downloadsTabContainer, '.copy-download-link-btn', 'click', (el) => {
 		navigator.clipboard.writeText(el.dataset.url)
 	})
@@ -29,71 +23,82 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		})
 	})
 
-	function newDownloadedItem(data) {
-		let downloadedItem = downloadsTabTemplate.querySelector('.downloaded-item').cloneNode(true)
-		downloadedItem.querySelector('.download-file-name').innerText = data['file-name']
-		downloadedItem.dataset.id = data.id
-		downloadedItem.dataset.dateAndTime = data['date-and-time']
-
-		let downloadItemOptions = downloadedItem.querySelector('.download-item-options')
-		downloadItemOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
-		downloadItemOptions.querySelector('.delete-download-item-btn').dataset.id = data.id
-
-		let fileSize = byte(Number(data['content-length'])).get()
-		downloadedItem.querySelector('.file-size').innerText =
-			decimalPoints(fileSize.data, 2) + ' ' + fileSize.unit
-		downloadedItem.querySelector('.date-and-time').innerText = dateAndTimeAgo(
-			data['date-and-time']
-		)
-
-		return downloadedItem
+	function renderSearch(downloadsTabContainer) {
+		let searchBarEl = searchBar.get()
+		downloadsTabContainer.prepend(searchBarEl)
 	}
 
-	function renderDownloadedList(list) {
-		let downloadedItemContainer = downloadsTabContainer.querySelector(
-			'.downloaded-item-container'
-		)
-		downloadedItemContainer.innerHTML = null
-		list.forEach((data) => {
-			downloadedItemContainer.appendChild(newDownloadedItem(data))
-		})
-	}
+	function renderDownloadedContainer(downloadsTabContainer) {
+		function newDownloadedItem(data) {
+			let downloadedItem = downloadsTabTemplate.querySelector('.downloaded-item').cloneNode(true)
+			downloadedItem.querySelector('.download-file-name').innerText = data['file-name']
+			downloadedItem.dataset.id = data.id
+			downloadedItem.dataset.dateAndTime = data['date-and-time']
 
-	let lastDateAndTime = undefined
-	let rendering = false
-	function renderDownloaded() {
-		if (rendering) {
-			return
+			let downloadItemOptions = downloadedItem.querySelector('.download-item-options')
+			downloadItemOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
+			downloadItemOptions.querySelector('.delete-download-item-btn').dataset.id = data.id
+
+			let fileSize = byte(Number(data['content-length'])).get()
+			downloadedItem.querySelector('.file-size').innerText =
+				decimalPoints(fileSize.data, 2) + ' ' + fileSize.unit
+			downloadedItem.querySelector('.date-and-time').innerText = dateAndTimeAgo(
+				data['date-and-time']
+			)
+
+			return downloadedItem
 		}
-		rendering = true
-		downloader.download.getDownloads(lastDateAndTime).then((res) => {
-			console.assert(res.error == undefined, res.error)
-			let list = res['download-items']
-			if (list.length <= 0) {
+
+		function renderDownloadedList(list) {
+			let downloadedItemContainer = downloadsTabContainer.querySelector(
+				'.downloaded-item-container'
+			)
+			downloadedItemContainer.innerHTML = null
+			list.forEach((data) => {
+				downloadedItemContainer.appendChild(newDownloadedItem(data))
+			})
+		}
+
+		let lastDateAndTime = undefined
+		let rendering = false
+		function renderDownloaded() {
+			if (rendering) {
 				return
 			}
-			lastDateAndTime = list[list.length - 1]['date-and-time']
-			renderDownloadedList(list)
-			rendering = false
-		})
-	}
-	renderDownloaded()
-
-	downloadsTabContainer.addEventListener('scroll', ({target}) => {
-		//target.scrollHeight means full scrollable height.
-		let scrollBottom = target.offsetHeight + target.scrollTop
-		if (scrollBottom + (scrollBottom / 100) * 10 >= target.scrollHeight) {
-			renderDownloaded()
+			rendering = true
+			downloader.download.getDownloads(lastDateAndTime).then((res) => {
+				console.assert(res.error == undefined, res.error)
+				let list = res['download-items']
+				if (list.length <= 0) {
+					return
+				}
+				lastDateAndTime = list[list.length - 1]['date-and-time']
+				renderDownloadedList(list)
+				rendering = false
+			})
 		}
-	})
 
-	//downloadingItem
-	{
+		downloadsTabContainer.addEventListener('scroll', ({target}) => {
+			//target.scrollHeight means full scrollable height.
+			let scrollBottom = target.offsetHeight + target.scrollTop
+			if (scrollBottom + (scrollBottom / 100) * 10 >= target.scrollHeight) {
+				renderDownloaded()
+			}
+		})
+
+		renderDownloaded()
+	}
+
+	function renderDownloadingContainer(downloadsTabContainer) {
 		let downloadingItemContainer = downloadsTabContainer.querySelector(
 			'.downloading-item-container'
 		)
 		let downloadingItem = downloadsTabTemplate.querySelector('.downloading-item')
 		downloadingItemContainer.appendChild(downloadingItem.cloneNode(true))
 	}
+
+	renderSearch(downloadsTabContainer)
+	renderDownloadingContainer(downloadsTabContainer)
+	renderDownloadedContainer(downloadsTabContainer)
 	main.set(downloadsTabContainer)
 })
