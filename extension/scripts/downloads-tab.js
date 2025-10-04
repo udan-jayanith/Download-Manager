@@ -10,6 +10,7 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		let searchBarEl = searchBar.get()
 		downloadsTabContainer.prepend(searchBarEl)
 	}
+	
 	EventDelegation(downloadsTabContainer, '.copy-download-link-btn', 'click', (el) => {
 		navigator.clipboard.writeText(el.dataset.url)
 	})

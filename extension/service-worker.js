@@ -104,7 +104,7 @@ function randomString(length) {
 	return result
 }
 
-function getFilenameData(details) {
+function transformDetails(details, headers) {
 	let obj = {
 		fileName: '',
 		extensionName: '',
@@ -114,6 +114,7 @@ function getFilenameData(details) {
 		type: details.type,
 		tabId: details.tabId,
 		contentLength: getHeaderValue(details.responseHeaders, 'Content-Length'),
+		headers: headers,
 	}
 
 	let contentTypeHederValue = getContentTypeHeaderValue(details.responseHeaders)
@@ -152,69 +153,7 @@ importScripts(
 	'./modules/Message-Passing/service-worker-msg-socket.js',
 	'./settings.js',
 	'./authentication.js',
-	'./download.js'
+	'./download.js',
+	'./webRequests.js'
 )
 
-let webRequests = {
-	arrayCap: 256,
-	webRequestsContainer: new Map(),
-	add: function (tabId, obj) {
-		let array = this.webRequestsContainer.get(tabId)
-		if (array == undefined) {
-			array = []
-			this.webRequestsContainer.set(tabId, array)
-		}
-		array.unshift(obj)
-		if (array.length >= this.arrayCap) {
-			array.splice(this.arrayCap, array.length - this.arrayCap)
-		}
-	},
-	get: function (tabId) {
-		let array = this.webRequestsContainer.get(tabId)
-		if (array == undefined) {
-			array = []
-		}
-		return array
-	},
-	delete: function (tabId) {
-		this.webRequestsContainer.delete(tabId)
-	},
-}
-
-chrome.webRequest.onHeadersReceived.addListener(
-	async (details) => {
-		if (details.tabId == -1) {
-			return
-		}
-		let obj = getFilenameData(details)
-		if (obj.extensionName == '' && obj.fileName == '') {
-			return
-		}
-		let settings = await getSettings()
-		if (settings.logWebRequest) {
-			console.log(obj)
-		}
-		webRequests.add(details.tabId, obj)
-	},
-	{urls: ['<all_urls>']},
-	['responseHeaders']
-)
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-	if (changeInfo.url == undefined) {
-		return
-	}
-	webRequests.delete(tabId)
-})
-
-let currentTabId = -1
-
-chrome.tabs.onActivated.addListener((activeInfo) => {
-	currentTabId = activeInfo.tabId
-})
-
-message.onRequest('webRequests', (_, response) => {
-	response({
-		webRequest: webRequests.get(currentTabId),
-	})
-})
