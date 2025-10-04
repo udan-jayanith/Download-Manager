@@ -83,7 +83,6 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			})
 		})
 
-		downloadsTabContainer.prepend(searchResultsContainerEl)
 		downloadsTabContainer.prepend(searchBarEl)
 	}
 
