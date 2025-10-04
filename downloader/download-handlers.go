@@ -95,6 +95,11 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Dir, err = Dir(req.Dir)
+	if err != nil {
+		WriteError(w, err.Error())
+		return
+	}
 	downloadItem := NewDownloadItem(req.FileName, req.Dir, req.URL)
 	downloadWorkPool.Download(downloadItem)
 }

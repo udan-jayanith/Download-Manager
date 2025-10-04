@@ -25,13 +25,8 @@ func (di *DownloadItem) download() {
 	if di.Status == Paused {
 		return
 	}
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		di.Update(0, 0, 0, err)
-		return
-	}
 
-	saveFilepath := filepath.Join(homeDir, di.Dir, di.FileName)
+	saveFilepath := filepath.Join(di.Dir, di.FileName)
 	err = os.Rename(di.TempFilePath, saveFilepath)
 	if err != nil {
 		di.Update(0, 0, 0, err)
