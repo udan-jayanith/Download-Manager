@@ -19,6 +19,8 @@ async function setResourcesTab() {
 				.querySelector('.fa-solid')
 				.classList.add(getItemIconClassName(settings.mediaTypes, el.extensionName))
 
+			item.dataset.url = el.url
+			item.dataset.fileName = el.fileName + '.' + el.extensionName
 			item.querySelector('.copy-download-link-btn').dataset.url = el.url
 			resourcesContainer.appendChild(item)
 		})
