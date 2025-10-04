@@ -5,12 +5,12 @@ let settings = {
 	mediaTypes: {},
 	logWebRequest: false,
 	useSyncSettings: true,
-	documentsDir: '/Documents',
-	videosDir: '/Videos',
-	audiosDir: '/Music',
-	imagesDir: '/Pictures',
-	compressedDir: '/Compressed',
-	othersDir: '/Downloads',
+	documentsDir: '${homeDir}/Documents',
+	videosDir: '${homeDir}/Videos',
+	audiosDir: '${homeDir}/Music',
+	imagesDir: '${homeDir}/Pictures',
+	compressedDir: '${homeDir}/Compressed',
+	othersDir: '${homeDir}/Downloads',
 }
 
 settings.mediaTypes = {
@@ -107,4 +107,3 @@ message.onRequest('settings.get', (_, response) => {
 message.onRequest('settings.update', (settings) => {
 	updateSettings(settings)
 })
-

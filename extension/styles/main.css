@@ -184,6 +184,7 @@ button {
 	padding: 4px 10px;
 	min-width: 80px;
 	min-height: 24px;
+	color: #3f414b;
 	&:hover {
 		color: white;
 		font-weight: bold;

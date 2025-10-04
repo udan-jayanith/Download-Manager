@@ -31,6 +31,8 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		downloadedItem.querySelector('.download-file-name').innerText = data['file-name']
 		downloadedItem.dataset.id = data.id
 		downloadedItem.dataset.dateAndTime = data['date-and-time']
+		let fileName = downloadedItem.querySelector('.download-file-name')
+		fileName.href = `${data.dir}${navigator.platform == 'Win32' ? '\\' : '/'}${data['file-name']}`
 
 		let downloadItemOptions = downloadedItem.querySelector('.download-item-options')
 		downloadItemOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
