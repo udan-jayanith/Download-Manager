@@ -192,7 +192,7 @@ func searchDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := Sqlite.DB.Select(&searchResults.SearchResults, `
-		SELECT * FROM downloads WHERE Status = ? AND (FileName LIKE ? OR URL LIKE ?);
+		SELECT * FROM downloads WHERE Status = ? AND (FileName LIKE ? OR URL LIKE ?) LIMIT 20;
 	`, Complete, query, query)
 	if err != nil {
 		WriteError(w, err.Error())
