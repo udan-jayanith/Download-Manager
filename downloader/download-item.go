@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -193,7 +192,6 @@ func (di *DownloadItem) Cancel() {
 // Delete delete the downloadItem from the database. This also delete the save files and any files created.
 func (di *DownloadItem) Delete() {
 	os.Remove(di.TempFilePath)
-	os.Remove(filepath.Join(di.Dir, di.FileName))
 
 	Sqlite.Execute(func(db *sqlx.DB) error {
 		_, err := db.Exec(`
