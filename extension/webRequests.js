@@ -115,6 +115,7 @@ function transformDetails(details, headers) {
 		tabId: details.tabId,
 		contentLength: getHeaderValue(details.responseHeaders, 'Content-Length'),
 		headers: headers,
+		requestId: details.requestId,
 	}
 
 	let contentTypeHederValue = getContentTypeHeaderValue(details.responseHeaders)

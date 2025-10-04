@@ -14,15 +14,19 @@ let downloader = {
 		return ''
 	},
 
-	newDownloadReq: function (fileName, url, dir) {
+	newDownloadReq: function (url, fileName, dir, headers = []) {
 		return {
 			fileName: fileName,
 			url: url,
 			dir: dir,
+			headers: headers,
 		}
 	},
 	download: {
-		download: async function (downloadReq) {},
+		download: async function (downloadReq) {
+			console.log(downloadReq)
+			return {}
+		},
 		getDownloads: async function (dateAndTime) {
 			let url = new URL('http://localhost:1616/download/get-downloads')
 			if (dateAndTime != undefined) {

@@ -12,11 +12,12 @@ let downloader = {
 		}
 		return ''
 	},
-	newDownloadReq: function (fileName, url, dir) {
+	newDownloadReq: async function (url, fileName, extensionName, headers = []) {
 		return {
-			fileName: fileName,
+			fileName: `${fileName}.${extensionName}`,
 			url: url,
-			dir: dir,
+			dir: await getMediaDir(extensionName),
+			headers: headers,
 		}
 	},
 

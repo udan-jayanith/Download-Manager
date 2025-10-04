@@ -4,24 +4,28 @@ document.querySelector('.resources-tab').addEventListener('click', () => {
 
 async function setResourcesTab() {
 	let settings = await getSettings()
+	let webRequestsMap = new Map()
 
 	function render(resourcesContainer, webRequests) {
 		resourcesContainer.querySelectorAll('.resources-item').forEach((el) => {
 			el.remove()
 		})
+		webRequestsMap.clear()
 
 		let resourcesItem = resourcesTabTemplate.querySelector('.resources-item')
 		webRequests.forEach((el) => {
+			webRequestsMap.set(el.requestId, el)
 			let item = resourcesItem.cloneNode(true)
-			item.querySelector('.resources-file-name').innerText = el.fileName + '.' + el.extensionName
+			let filenameEl = item.querySelector('.resources-file-name')
+			filenameEl.innerText = el.fileName + '.' + el.extensionName
+			filenameEl.dataset.requestId = el.requestId
 			item.title = el.extensionName
 			item
 				.querySelector('.fa-solid')
 				.classList.add(getItemIconClassName(settings.mediaTypes, el.extensionName))
-
-			item.dataset.url = el.url
-			item.dataset.fileName = el.fileName + '.' + el.extensionName
+			item.dataset.requestId = el.requestId
 			item.querySelector('.copy-download-link-btn').dataset.url = el.url
+
 			resourcesContainer.appendChild(item)
 		})
 	}
@@ -55,6 +59,23 @@ async function setResourcesTab() {
 
 	EventDelegation(resourcesContainer, '.copy-download-link-btn', 'click', (e) => {
 		navigator.clipboard.writeText(e.dataset.url)
+	})
+
+	EventDelegation(resourcesContainer, '.resources-file-name', 'click', async (target) => {
+		console.assert(target != undefined, 'target is undefined.')
+		let requestId = target.dataset.requestId
+		console.assert(requestId != undefined, 'requestId is undefined.')
+
+		let webRequest = webRequestsMap.get(requestId)
+		console.assert(webRequest != undefined, 'webRequest is not found in the webRequestsMap.')
+		let downloadReq = await downloader.newDownloadReq(
+			webRequest.url,
+			webRequest.fileName,
+			webRequest.extensionName,
+			webRequest.headers
+		)
+		let res = await downloader.download.download(downloadReq)
+		console.assert(res.error == undefined, res.error)
 	})
 
 	let searchBarEl = searchBar.get()

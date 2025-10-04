@@ -153,3 +153,26 @@ function serializeMediaTypes(obj) {
 function stringBooleanToBoolean(stringBoolean) {
 	return stringBoolean.toLowerCase() == 'true'
 }
+
+async function getMediaDir(extensionName) {
+	let settings = await getSettings()
+	let keys = Object.keys(settings.mediaTypes)
+	for (let i = 0; i < keys.length; i++) {
+		let key = keys[i]
+		if (settings.mediaTypes[key][extensionName]) {
+			switch (key) {
+				case 'document':
+					return settings.documentsDir
+				case 'compressed':
+					return settings.compressedDir
+				case 'audio':
+					return settings.audiosDir
+				case 'video':
+					return settings.videosDir
+				case 'image':
+					return settings.imagesDir
+			}
+		}
+	}
+	return settings.othersDir
+}
