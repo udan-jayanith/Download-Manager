@@ -14,7 +14,7 @@
 	border-radius: 10px;
 	box-sizing: border-box;
 	padding: 10px;
-	.fa-link{
+	.fa-link {
 		cursor: copy;
 	}
 }
@@ -55,7 +55,8 @@
 }
 
 .downloaded-item-container,
-.downloading-item-container {
+.downloading-item-container,
+.search-results-container {
 	width: 100%;
 	box-sizing: border-box;
 	height: fit-content;
@@ -78,7 +79,8 @@
 	width: 100%;
 }
 
-.download-bottom, .download-item-bottom {
+.download-bottom,
+.download-item-bottom {
 	display: flex;
 	flex-direction: row;
 	justify-content: flex-start;

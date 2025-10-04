@@ -26,7 +26,6 @@ main {
 }
 
 .resources-container,
-.search-results-container,
 .downloads-tab-container,
 .settings-container {
 	box-sizing: border-box;
@@ -37,6 +36,13 @@ main {
 	overflow-y: scroll;
 	scrollbar-width: thin;
 	scrollbar-color: var(--secondary-color) rgba(0, 0, 0, 0);
+}
+
+.copy-download-link-btn,
+.delete-download-item-btn {
+	&:hover {
+		color: var(--primary-color);
+	}
 }
 
 h1,
@@ -191,5 +197,5 @@ button {
 }
 
 .hide {
-	display: none;
+	display: none !important;
 }

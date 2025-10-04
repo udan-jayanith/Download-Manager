@@ -23,37 +23,72 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		})
 	})
 
+	function newDownloadedItem(data) {
+		let downloadedItem = downloadsTabTemplate.querySelector('.downloaded-item').cloneNode(true)
+		downloadedItem.querySelector('.download-file-name').innerText = data['file-name']
+		downloadedItem.dataset.id = data.id
+		downloadedItem.dataset.dateAndTime = data['date-and-time']
+
+		let downloadItemOptions = downloadedItem.querySelector('.download-item-options')
+		downloadItemOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
+		downloadItemOptions.querySelector('.delete-download-item-btn').dataset.id = data.id
+
+		let fileSize = byte(Number(data['content-length'])).get()
+		downloadedItem.querySelector('.file-size').innerText =
+			decimalPoints(fileSize.data, 2) + ' ' + fileSize.unit
+		downloadedItem.querySelector('.date-and-time').innerText = dateAndTimeAgo(
+			data['date-and-time']
+		)
+
+		return downloadedItem
+	}
+
 	function renderSearch(downloadsTabContainer) {
 		let searchBarEl = searchBar.get()
+		let searchBarInputEl = searchBarEl.querySelector('input')
+
+		let searchResultsContainerEl = downloadsTabContainer.querySelector(
+			'.search-results-container'
+		)
+		hideEl(searchResultsContainerEl)
+
+		let rendering = false
+		searchBarInputEl.addEventListener('input', (e) => {
+			console.log(getInputValue(e).trim())
+			if (getInputValue(e).trim() == '') {
+				hideEl(searchResultsContainerEl)
+				searchResultsContainerEl.innerHTML = null
+				return
+			} else if (rendering) {
+				return
+			} else {
+				rendering = true
+			}
+
+			downloader.download.searchDownload(getInputValue(e)).then((res) => {
+				console.assert(res.error == undefined, res.error)
+				let searchResults = res['search-results']
+				if (searchResults == undefined) {
+					return
+				}
+				showEl(searchResultsContainerEl)
+				searchResultsContainerEl.innerHTML = null
+				searchResults.forEach((data) => {
+					searchResultsContainerEl.appendChild(newDownloadedItem(data))
+				})
+				rendering = false
+			})
+		})
+
+		downloadsTabContainer.prepend(searchResultsContainerEl)
 		downloadsTabContainer.prepend(searchBarEl)
 	}
 
 	function renderDownloadedContainer(downloadsTabContainer) {
-		function newDownloadedItem(data) {
-			let downloadedItem = downloadsTabTemplate.querySelector('.downloaded-item').cloneNode(true)
-			downloadedItem.querySelector('.download-file-name').innerText = data['file-name']
-			downloadedItem.dataset.id = data.id
-			downloadedItem.dataset.dateAndTime = data['date-and-time']
-
-			let downloadItemOptions = downloadedItem.querySelector('.download-item-options')
-			downloadItemOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
-			downloadItemOptions.querySelector('.delete-download-item-btn').dataset.id = data.id
-
-			let fileSize = byte(Number(data['content-length'])).get()
-			downloadedItem.querySelector('.file-size').innerText =
-				decimalPoints(fileSize.data, 2) + ' ' + fileSize.unit
-			downloadedItem.querySelector('.date-and-time').innerText = dateAndTimeAgo(
-				data['date-and-time']
-			)
-
-			return downloadedItem
-		}
-
 		function renderDownloadedList(list) {
 			let downloadedItemContainer = downloadsTabContainer.querySelector(
 				'.downloaded-item-container'
 			)
-			downloadedItemContainer.innerHTML = null
 			list.forEach((data) => {
 				downloadedItemContainer.appendChild(newDownloadedItem(data))
 			})
