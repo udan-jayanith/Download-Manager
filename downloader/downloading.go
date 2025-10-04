@@ -12,7 +12,7 @@ import (
 
 func (di *DownloadItem) download() {
 	defer di.Close()
-	downloadReq, err := httpDownloadReq(di.URL, di.TempFilePath)
+	downloadReq, err := httpDownloadReq(di.URL, di.Headers, di.TempFilePath)
 	if err != nil {
 		di.Update(0, 0, 0, err)
 		return
@@ -121,8 +121,8 @@ func download(req *http.Request, destFilepath string, updates UpdateChan, cancel
 	updates.ChangeStatus(Complete)
 }
 
-func getHttpReqRes(url string) (*http.Response, error) {
-	res, err := http.Get(url)
+func getHttpReqRes(req *http.Request) (*http.Response, error) {
+	res, err := http.DefaultClient.Do(req)
 	res.Body.Close()
 	return res, err
 }
@@ -133,10 +133,17 @@ type DownloadReq struct {
 	PartialContent bool
 }
 
-func httpDownloadReq(url string, destFilepath string) (DownloadReq, error) {
+func httpDownloadReq(url string, headers []HTTPHeader, destFilepath string) (DownloadReq, error) {
 	downloadReq := *new(DownloadReq)
 
-	res, err := getHttpReqRes(url)
+	req, err := http.NewRequest("GET", url, nil)
+	for _, header := range headers {
+		req.Header.Set(header.Name, header.Value)
+	}
+	downloadReq.Req = req
+
+	reqCopy := *req
+	res, err := getHttpReqRes(&reqCopy)
 	if err != nil {
 		return downloadReq, err
 	}
@@ -147,9 +154,6 @@ func httpDownloadReq(url string, destFilepath string) (DownloadReq, error) {
 	if err != nil {
 		return downloadReq, err
 	}
-
-	req, err := http.NewRequest("GET", url, nil)
-	downloadReq.Req = req
 
 	//Set partialContent
 	if res.Header.Get("Accept-Ranges") == "bytes" || res.StatusCode == http.StatusPartialContent {

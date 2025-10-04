@@ -98,15 +98,16 @@ type DownloadItem struct {
 
 	Updates      chan DownloadItemUpdate
 	TempFilePath string
+	Headers      []HTTPHeader
 	cancel       chan struct{}
 	deleted      bool
 }
 
-func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
+func NewDownloadItem(downloadRequest DownloadRequest) DownloadItem {
 	downloadItem := DownloadItem{
-		FileName:       FileName,
-		URL:            URL,
-		Dir:            Dir,
+		FileName:       downloadRequest.FileName,
+		URL:            downloadRequest.URL,
+		Dir:            downloadRequest.Dir,
 		DateAndTime:    time.Now(),
 		Status:         Pending,
 		Updates:        make(chan DownloadItemUpdate, 8),
@@ -114,6 +115,7 @@ func NewDownloadItem(FileName, Dir, URL string) DownloadItem {
 
 		cancel:  make(chan struct{}, 1),
 		deleted: false,
+		Headers: downloadRequest.Headers, //Headers does not get saved in the database.
 	}
 
 	tempFile, err := os.CreateTemp(os.TempDir(), "Download-Manager")

@@ -76,23 +76,31 @@ func HandleDownloads(mux *http.ServeMux) {
 	mux.HandleFunc("/download/delete", deleteDownload)
 }
 
+type HTTPHeader struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type DownloadRequest struct {
+	FileName string       `json:"file-name"`
+	URL      string       `json:"url"`
+	Dir      string       `json:"dir"`
+	Headers  []HTTPHeader `json:"headers"`
+}
+
 func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	AllowCrossOrigin(w)
 	if !RequireAuthenticationToken(w, r) {
 		return
 	}
 
-	type request struct {
-		FileName string `json:"file-name"`
-		URL      string `json:"url"`
-		Dir      string `json:"dir"`
-	}
-
-	var req request
+	var req DownloadRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		WriteError(w, fmt.Sprintf("body decoding error, %s", err))
 		return
+	} else if req.Headers == nil {
+		req.Headers = make([]HTTPHeader, 0)
 	}
 
 	req.Dir, err = Dir(req.Dir)
@@ -100,7 +108,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, err.Error())
 		return
 	}
-	downloadItem := NewDownloadItem(req.FileName, req.Dir, req.URL)
+	downloadItem := NewDownloadItem(req)
 	downloadWorkPool.Download(downloadItem)
 }
 
