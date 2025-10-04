@@ -11,15 +11,18 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 
 	EventDelegation(downloadsTabContainer, '.delete-download-item-btn', 'click', (el) => {
 		console.assert(el.dataset.id != null, 'ID is null')
-		let downloadItem = el.closest('.downloaded-item')
+		let downloadTabContainer = el.closest('.downloads-tab-container')
+		let downloadItems = downloadTabContainer.querySelectorAll(
+			`.downloaded-item[data-id='${el.dataset.id}'], .downloading-item[data-id='${el.dataset.id}']`
+		)
 		downloader.controls.delete(el.dataset.id).then((res) => {
 			if (res.error != undefined) {
 				notifyError(res)
 				return
 			}
-			if (downloadItem != null) {
-				downloadItem.remove()
-			}
+			downloadItems.forEach((el) => {
+				el.remove()
+			})
 		})
 	})
 
