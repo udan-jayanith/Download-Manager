@@ -128,13 +128,34 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		renderDownloaded()
 	}
 
+	function newDownloadingItem(data) {
+		let downloadingItem = downloadsTabTemplate.querySelector('.downloading-item').cloneNode(true)
+		downloadingItem.dataset.id = data.id
+		downloadingItem.querySelector('.download-file-name').innerText = data['file-name']
+
+		let downloadingOptions = downloadingItem.querySelector('.download-item-options')
+		downloadingOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
+		downloadingOptions.querySelector('.delete-download-item-btn').dataset.id = data.id
+
+		return downloadingItem
+	}
+
 	function renderDownloadingContainer(downloadsTabContainer) {
 		let downloadingItemContainer = downloadsTabContainer.querySelector(
 			'.downloading-item-container'
 		)
-		let downloadingItem = downloadsTabTemplate.querySelector('.downloading-item')
-		downloadingItemContainer.appendChild(downloadingItem.cloneNode(true))
+		downloadingItemContainer.innerHTML = null
+
+		downloader.download.getDownloading().then((res) => {
+			console.assert(res.error == undefined, res.error)
+			let list = res['downloading-items']
+			list.forEach((data) => {
+				downloadingItemContainer.appendChild(newDownloadingItem(data))
+			})
+		})
 	}
+
+	//Change data according to updates. If a downloading item is not for a update id. Rerender the downloading container. 
 
 	renderSearch(downloadsTabContainer)
 	renderDownloadingContainer(downloadsTabContainer)
