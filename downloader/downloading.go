@@ -61,10 +61,6 @@ func download(req *http.Request, destFilepath string, updates UpdateChan, cancel
 	defer res.Body.Close()
 
 	contentLength, err := strconv.Atoi(res.Header.Get("Content-Length"))
-	if err != nil {
-		updates.Update(0, 0, 0, err)
-		return
-	}
 
 	destFileStat, err := destFile.Stat()
 	if err != nil {
@@ -151,9 +147,6 @@ func httpDownloadReq(url string, headers []HTTPHeader, destFilepath string) (Dow
 	//Set contentLength
 	contentLength, err := strconv.Atoi(res.Header.Get("Content-Length"))
 	downloadReq.ContentLength = contentLength
-	if err != nil {
-		return downloadReq, err
-	}
 
 	//Set partialContent
 	if res.Header.Get("Accept-Ranges") == "bytes" || res.StatusCode == http.StatusPartialContent {
