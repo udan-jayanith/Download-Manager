@@ -15,17 +15,22 @@ let downloader = {
 	},
 
 	newDownloadReq: function (url, fileName, dir, headers = []) {
-		return {
-			fileName: fileName,
+		let res = {
 			url: url,
 			dir: dir,
 			headers: headers,
 		}
+		res['file-name'] = fileName
+		return res
 	},
 	download: {
 		download: async function (downloadReq) {
-			console.log(downloadReq)
-			return {}
+			let res = await fetchFromDownloader('http://localhost:1616/download/download', {
+				body: JSON.stringify(downloadReq),
+				method: 'POST',
+			})
+			let json = res.headers.get('Content-Type') == 'application/json' ? await res.json() : {}
+			return json
 		},
 		getDownloads: async function (dateAndTime) {
 			let url = new URL('http://localhost:1616/download/get-downloads')

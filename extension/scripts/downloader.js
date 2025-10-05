@@ -13,12 +13,13 @@ let downloader = {
 		return ''
 	},
 	newDownloadReq: async function (url, fileName, extensionName, headers = []) {
-		return {
-			fileName: `${fileName}.${extensionName}`,
+		let res = {
 			url: url,
 			dir: await getMediaDir(extensionName),
 			headers: headers,
 		}
+		res['file-name'] = `${fileName}.${extensionName}`
+		return res
 	},
 
 	download: {
