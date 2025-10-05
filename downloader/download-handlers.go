@@ -103,6 +103,11 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		req.Headers = make([]HTTPHeader, 0)
 	}
 
+	if strings.TrimSpace(req.FileName) == "" || strings.TrimSpace(req.Dir) == "" || strings.TrimSpace(req.URL) == "" {
+		WriteError(w, "Missing file-name, dir or url.")
+		return
+	}
+
 	req.Dir, err = Dir(req.Dir)
 	if err != nil {
 		WriteError(w, err.Error())
