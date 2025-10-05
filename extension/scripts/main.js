@@ -60,19 +60,59 @@ function decimalPoints(number, decimalPoints) {
 }
 
 function dateAndTimeAgo(dateAndTime) {
-	let dt = luxon.DateTime.now().minus(luxon.DateTime.fromISO(dateAndTime).c).c
-	if (dt.year > 0) {
-		return `${dt.day}/${dt.month}/${dt.year} ago`
-	} else if (dt.month > 0) {
-		return `${dt.day}d ${dt.month}m ago`
-	} else if (dt.day > 0) {
-		return `${dt.day}d ago`
-	} else if (dt.hour > 0) {
-		return `${dt.hour}h ago`
-	} else if (dt.minute > 0) {
-		return `${dt.minute}m ago`
+	//2025-10-05T13:01:37+05:30
+	dateAndTime = luxon.DateTime.fromISO(dateAndTime).c
+	let diff =
+		luxon.Duration.fromObject(luxon.DateTime.now().c).as('seconds') -
+		luxon.Duration.fromObject(dateAndTime).as('seconds')
+
+	let table = {
+		seconds: Math.round(diff),
+		minutes: function () {
+			let res = Math.round(this.seconds / 60)
+			return JSON.stringify(res) == 'null' ? 0 : res
+		},
+		hours: function () {
+			let res = Math.round(this.minutes() / 60)
+			return JSON.stringify(res) == 'null' ? 0 : res
+		},
+		days: function () {
+			let res = Math.round(this.hours() / 24)
+			return JSON.stringify(res) == 'null' ? 0 : res
+		},
+		months: function () {
+			let res = Math.round(this.days() / 30)
+			return JSON.stringify(res) == 'null' ? 0 : res
+		},
+		years: function () {
+			let res = Math.round(this.months() / 12)
+			return JSON.stringify(res) == 'null' ? 0 : res
+		},
 	}
-	return `${dt.second}s ago`
+
+	if (table.minutes() <= 0) {
+		return `${table.seconds}s ago`
+	} else if (table.hours() <= 0) {
+		return `${table.minutes()}m ${
+			table.seconds() - table.minutes() * 60 > 0
+				? table.seconds() - table.minutes() * 60 + 's '
+				: ''
+		}ago`
+	} else if (table.days() <= 0) {
+		return `${table.hours()}h ${
+			table.minutes() - table.hours() * 60 > 0 ? table.minutes() - table.hours() * 60 + 'm ' : ''
+		}ago`
+	} else if (table.months() <= 0) {
+		return `${table.days()}d ${
+			table.hours() - table.days() * 24 > 0 ? table.hours() - table.days() * 24 + 'h ' : ''
+		}ago`
+	} else if (table.years() <= 0) {
+		return `${table.months()}m ${
+			table.days() - table.months() * 30 > 0 ? table.days() - table.months() * 30 + 'd ' : ''
+		}ago`
+	}
+
+	return `${dateAndTime.day}-${dateAndTime.month}-${dateAndTime.year}`
 }
 
 function EventDelegation(parentElement, elementSelector, eventType, callback) {
