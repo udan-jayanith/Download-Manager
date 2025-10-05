@@ -13,24 +13,22 @@ function byte(byteAmount) {
 		get: function () {
 			let obj = {
 				data: this.byte,
-				unit: 'byte',
+				unit: 'Byte',
 			}
 			if (obj.data < 1024) {
 				return obj
 			} else if (this.kb() < 1024) {
 				obj.data = this.kb()
-				obj.unit = 'kb'
+				obj.unit = 'KB'
 			} else if (this.mb() < 1024) {
 				obj.data = this.mb()
-				obj.unit = 'mb'
+				obj.unit = 'MB'
             } else {
                 obj.data = this.gb()
-                obj.unit = 'gb'
+                obj.unit = 'GB'
             }
             return obj
 		},
 	}
 	return obj
 }
-
-//DateTime.fromISO(DateTime.now().toString()).toISODate()
