@@ -119,8 +119,8 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		}
 
 		downloadsTabContainer.addEventListener('scroll', ({target}) => {
-			//target.scrollHeight means full scrollable height.
 			let scrollBottom = target.offsetHeight + target.scrollTop
+			//target.scrollHeight means full scrollable height.
 			if (scrollBottom + (scrollBottom / 100) * 10 >= target.scrollHeight) {
 				renderDownloaded()
 			}
