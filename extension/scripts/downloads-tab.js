@@ -153,6 +153,11 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			list.forEach((data) => {
 				downloadingItemContainer.appendChild(newDownloadingItem(data))
 			})
+			if (list.length == 0) {
+				hideEl(downloadingItemContainer)
+			} else {
+				showEl(downloadingItemContainer)
+			}
 		})
 	}
 
