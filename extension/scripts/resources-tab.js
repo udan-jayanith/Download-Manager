@@ -17,14 +17,14 @@ async function setResourcesTab() {
 			webRequestsMap.set(el.requestId, el)
 			let item = resourcesItem.cloneNode(true)
 			let filenameEl = item.querySelector('.resources-file-name')
-			filenameEl.innerText = el.fileName + '.' + el.extensionName
 			filenameEl.dataset.requestId = el.requestId
+			item.dataset.requestId = el.requestId
+			item.dataset.url = el.url
 			item.title = el.extensionName
+			filenameEl.innerText = el.fileName + '.' + el.extensionName
 			item
 				.querySelector('.fa-solid')
 				.classList.add(getItemIconClassName(settings.mediaTypes, el.extensionName))
-			item.dataset.requestId = el.requestId
-			item.querySelector('.copy-download-link-btn').dataset.url = el.url
 
 			resourcesContainer.appendChild(item)
 		})
@@ -58,7 +58,21 @@ async function setResourcesTab() {
 		.cloneNode(true)
 
 	EventDelegation(resourcesContainer, '.copy-download-link-btn', 'click', (e) => {
-		navigator.clipboard.writeText(e.dataset.url)
+		let item = e.closest('.resources-item')
+		if (item == null) {
+			console.warn('Unable to find the url.')
+			return
+		}
+		navigator.clipboard.writeText(item.dataset.url)
+	})
+
+	EventDelegation(resourcesContainer, '.open-in-new-tab', 'click', (e) => {
+		let item = e.closest('.resources-item')
+		if (item == null) {
+			console.warn('Unable to find the url.')
+			return
+		}
+		window.open(item.dataset.url, '_blank')
 	})
 
 	EventDelegation(resourcesContainer, '.resources-file-name', 'click', async (target) => {
