@@ -33,6 +33,7 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		downloadedItem.dataset.dateAndTime = data['date-and-time']
 		let fileName = downloadedItem.querySelector('.download-file-name')
 		fileName.href = `${data.dir}${navigator.platform == 'Win32' ? '\\' : '/'}${data['file-name']}`
+		fileName.title = getFileExtensionNameFromFileName(data['file-name'])
 
 		let downloadItemOptions = downloadedItem.querySelector('.download-item-options')
 		downloadItemOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
@@ -155,10 +156,18 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		})
 	}
 
-	//Change data according to updates. If a downloading item is not for a update id. Rerender the downloading container. 
+	//Change data according to updates. If a downloading item is not for a update id. Rerender the downloading container.
 
 	renderSearch(downloadsTabContainer)
 	renderDownloadingContainer(downloadsTabContainer)
 	renderDownloadedContainer(downloadsTabContainer)
 	main.set(downloadsTabContainer)
 })
+
+function getFileExtensionNameFromFileName(filename) {
+	let res = ''
+	for (let i = filename.length - 1; i >= 0 && filename[i] != '.'; i--) {
+		res = filename[i] + res
+	}
+	return res
+}

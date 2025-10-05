@@ -94,8 +94,8 @@ function dateAndTimeAgo(dateAndTime) {
 		return `${table.seconds}s ago`
 	} else if (table.hours() <= 0) {
 		return `${table.minutes()}m ${
-			table.seconds() - table.minutes() * 60 > 0
-				? table.seconds() - table.minutes() * 60 + 's '
+			table.seconds - table.minutes() * 60 > 0
+				? table.seconds - table.minutes() * 60 + 's '
 				: ''
 		}ago`
 	} else if (table.days() <= 0) {
