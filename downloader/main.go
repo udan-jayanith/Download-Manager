@@ -15,7 +15,7 @@ var (
 	_                = godotenv.Load("./.env")
 	downloadWorkPool = NewDownloadWorkPool()
 	updatesHandler   = UpdatesHandler{
-		maxConnections: 2,
+		maxConnections: 4,
 		updatesChan:    downloadWorkPool.Updates,
 		conns:          make(map[*websocket.Conn]struct{}, 1),
 	}

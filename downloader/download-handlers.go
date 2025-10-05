@@ -71,6 +71,7 @@ func HandleDownloads(mux *http.ServeMux) {
 	mux.HandleFunc("/download/get-downloads", getDownloads)
 	mux.HandleFunc("/download/get-downloading", getDownloading)
 	mux.HandleFunc("/download/search-downloads", searchDownload)
+	mux.HandleFunc("/download/get-download-item", getDownloadItem)
 	mux.HandleFunc("/download/pause", pauseDownload)
 	mux.HandleFunc("/download/resume", resumeDownload)
 	mux.HandleFunc("/download/delete", deleteDownload)
@@ -219,6 +220,37 @@ func searchDownload(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&searchResults)
+}
+
+func getDownloadItem(w http.ResponseWriter, r *http.Request) {
+	AllowCrossOrigin(w)
+	if !RequireAuthenticationToken(w, r) {
+		return
+	}
+
+	downloadID, err := strconv.Atoi(r.FormValue("download-id"))
+	if err != nil {
+		WriteError(w, err.Error())
+		return
+	}
+
+	downloadItem, ok := downloadWorkPool.GetDownloadItem(int64(downloadID))
+	var downloadItemJson DownloadItemJson
+	if !ok {
+		err := Sqlite.Execute(func(db *sqlx.DB) error {
+			return db.Get(&downloadItemJson, `
+				SELECT * FROM downloads WHERE ID = ? LIMIT 1;
+			`, downloadID)
+		})
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		}
+	} else {
+		downloadItemJson = downloadItem.JSON()
+	}
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(&downloadItemJson)
 }
 
 func pauseDownload(w http.ResponseWriter, r *http.Request) {
