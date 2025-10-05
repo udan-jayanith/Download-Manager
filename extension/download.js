@@ -2,16 +2,20 @@ let downloader = {
 	origin: 'http://localhost:1616',
 	downloadStatus: function (status) {
 		switch (status) {
+			case '0':
 			case 0:
 				return 'pending'
+			case '1':
 			case 1:
 				return 'downloading'
+			case '2':
 			case 2:
 				return 'complete'
+			case '3':
 			case 3:
 				return 'paused'
 		}
-		return ''
+		return status
 	},
 
 	newDownloadReq: function (url, fileName, dir, headers = []) {
