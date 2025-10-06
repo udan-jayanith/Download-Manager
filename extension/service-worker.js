@@ -12,6 +12,15 @@ chrome.runtime.onConnect.addListener(function (port) {
 	callback(port)
 })
 
+async function notify(title, message, iconUrl = 'http://localhost:1616/pages/favicon.png') {
+	return chrome.notifications.create(null, {
+		title: title,
+		message: message,
+		iconUrl: iconUrl,
+		type: 'basic',
+	})
+}
+
 importScripts(
 	'./modules/Message-Passing/message.js',
 	'./modules/Message-Passing/service-worker-msg-socket.js',
@@ -20,4 +29,3 @@ importScripts(
 	'./download.js',
 	'./webRequests.js'
 )
-

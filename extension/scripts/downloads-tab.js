@@ -169,6 +169,8 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		})
 	}
 
+	
+
 	//Change data according to updates. If a downloading item is not for a update id. Rerender the downloading container.
 
 	renderSearch(downloadsTabContainer)

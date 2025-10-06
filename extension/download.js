@@ -57,6 +57,13 @@ let downloader = {
 			let json = await res.json()
 			return json
 		},
+		getDownloadItem: async function (downloadItemID) {
+			let url = new URL(`http://localhost:1616/download/get-download-item`)
+			url.searchParams.append('download-id', downloadItemID)
+			let res = await fetchFromDownloader(url)
+			let json = await res.json()
+			return json
+		},
 	},
 	updates: {
 		callbacks: [],
@@ -145,8 +152,27 @@ downloader.updates.waUpdates.addEventListener('message', ({data}) => {
 	})
 })
 
+/*
+downloader.updates.waUpdates.addEventListener('open', ({data}) => {
+	console.log('connected')
+})
+*/
+
 msgSocket.onConnect('downloader.downloading.updates', (conn) => {
 	downloader.updates.onUpdate((data) => {
 		conn.send(data)
+	})
+})
+
+downloader.updates.onUpdate((data) => {
+	let json = JSON.parse(data)
+	if (downloader.downloadStatus(json.status) != 'complete') {
+		return
+	}
+	downloader.download.getDownloadItem(json['download-id']).then((res) => {
+		console.assert(res.error == undefined, res.error)
+		let title = `Download Complete`.trim()
+		let message = `File "${res['file-name']}"`
+		notify(title, message)
 	})
 })
