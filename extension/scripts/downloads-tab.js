@@ -26,6 +26,14 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		})
 	})
 
+	downloadsTabContainer.querySelector('.download-btn').addEventListener('click', () => {
+		componentSystem.loadComponent('/downloadPopup/main.html').then((component) => {
+			let dialogPopupEl = component.querySelector('dialog')
+			document.body.prepend(dialogPopupEl)
+			dialogPopupEl.showModal()
+		})
+	})
+
 	function newDownloadedItem(data) {
 		let downloadedItem = downloadsTabTemplate.querySelector('.downloaded-item').cloneNode(true)
 		downloadedItem.querySelector('.download-file-name').innerText = data['file-name']

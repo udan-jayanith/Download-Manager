@@ -123,3 +123,4 @@ function EventDelegation(parentElement, elementSelector, eventType, callback) {
 	})
 }
 
+componentSystem.rootDir = './components/'

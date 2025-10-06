@@ -1,0 +1,71 @@
+<template>
+	<dialog class="download-popup">
+		<label for="download-url">URL</label>
+		<input type="url" id="download-url" placeholder="example.com" />
+		<label for="file-name">Save file name</label>
+		<input type="text" id="file-name" placeholder="image.jpg" />
+		<label for="folder-location">Select download folder</label>
+		<select id="folder-location">
+			<option value="">Documents</option>
+			<option value="">Videos</option>
+			<option value="">Audios</option>
+			<option value="">Images</option>
+			<option value="">Compressed</option>
+			<option value="">Others</option>
+		</select>
+		<div class="button-container">
+			<button class="done-btn">Done</button>
+			<button class="cancel-btn">Cancel</button>
+		</div>
+
+		<style>
+			.download-popup {
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: flex-start;
+				flex-wrap: nowrap;
+
+				width: 100%;
+				height: fit-content;
+				font: inherit;
+
+				label {
+					padding-left: 4px;
+					font-size: 14px;
+				}
+				input,
+				select {
+					margin-bottom: 10px;
+				}
+
+				.button-container {
+					display: flex;
+					flex-direction: row;
+					justify-content: flex-start;
+					align-items: center;
+					gap: 10px;
+
+					button {
+						height: 32px;
+						width: 40px;
+						color: white;
+						font-weight: bold;
+						cursor: pointer;
+					}
+
+					.cancel-btn {
+						background-color: var(--secondary-color);
+					}
+				}
+			}
+
+			@media (orientation: landscape) {
+				.download-popup {
+					width: 600px;
+					padding: 10px;
+				}
+			}
+		</style>
+	</dialog>
+</template>
