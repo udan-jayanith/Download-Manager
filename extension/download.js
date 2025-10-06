@@ -65,13 +65,6 @@ let downloader = {
 			return json
 		},
 	},
-	updates: {
-		callbacks: [],
-		waUpdates: new WebSocket('http://localhost:1616/download/wa/updates'),
-		onUpdate: function (callback) {
-			this.callbacks.push(callback)
-		},
-	},
 	controls: {
 		pauseDownload: async function (downloadID) {
 			let url = new URL(`http://localhost:1616/download/pause`)
@@ -146,25 +139,8 @@ message.onRequest('downloader.controls.delete', ({downloadID}, response) => {
 })
 
 //Downloading updates (wa updates)
-downloader.updates.waUpdates.addEventListener('message', ({data}) => {
-	downloader.updates.callbacks.forEach((callback) => {
-		callback(data)
-	})
-})
-
-/*
-downloader.updates.waUpdates.addEventListener('open', ({data}) => {
-	console.log('connected')
-})
-*/
-
-msgSocket.onConnect('downloader.downloading.updates', (conn) => {
-	downloader.updates.onUpdate((data) => {
-		conn.send(data)
-	})
-})
-
-downloader.updates.onUpdate((data) => {
+let downloadUpdatesWa = new WebSocket('http://localhost:1616/download/wa/updates')
+downloadUpdatesWa.addEventListener('message', ({data}) => {
 	let json = JSON.parse(data)
 	if (downloader.downloadStatus(json.status) != 'complete') {
 		return

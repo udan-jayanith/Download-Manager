@@ -202,22 +202,12 @@ button {
 }
 
 .delete-animation {
-	animation-name: fade-out;
-	animation-duration: 0.24s;
-	animation-fill-mode: forwards;
+	animation: fade-out 0.5s forwards;
 }
 
 @keyframes fade-out {
-	0% {
-		opacity: 90%;
-	}
-	60% {
-		opacity: 40%;
-	}
-	90% {
-		opacity: 10%;
-	}
 	100% {
 		opacity: 0;
+		display: none;
 	}
 }

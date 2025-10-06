@@ -62,9 +62,4 @@ let downloader = {
 			return res
 		},
 	},
-	updates: {
-		connect: function () {
-			return msgSocket.connect('downloader.downloading.updates')
-		},
-	},
 }
