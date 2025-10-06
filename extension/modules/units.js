@@ -23,12 +23,38 @@ function byte(byteAmount) {
 			} else if (this.mb() < 1024) {
 				obj.data = this.mb()
 				obj.unit = 'MB'
-            } else {
-                obj.data = this.gb()
-                obj.unit = 'GB'
-            }
-            return obj
+			} else {
+				obj.data = this.gb()
+				obj.unit = 'GB'
+			}
+			return obj
 		},
+	}
+	return obj
+}
+
+function seconds(seconds) {
+	let obj = {
+		count: seconds,
+		unit: 'S',
+	}
+
+	let table = {
+		seconds: seconds,
+	}
+
+	table.minutes = table.seconds / 60
+	table.hours = table.minutes / 60
+	table.days = table.hours / 24
+	if (table.days >= 1) {
+		obj.count = table.days
+		obj.unit = 'D'
+	} else if (table.hours >= 1) {
+		obj.count = table.hours
+		obj.unit = 'H'
+	} else if (table.minutes >= 1) {
+		obj.count = table.minutes
+		obj.unit = 'M'
 	}
 	return obj
 }

@@ -132,7 +132,9 @@ function DeleteElementWithAnimation(element) {
 	let elementCopy = element.cloneNode(true)
 	elementCopy.classList.add('delete-animation')
 
-	element.parentNode.replaceChild(elementCopy, element)
+	try {
+		element.parentNode.replaceChild(elementCopy, element)
+	} catch (err) {}
 	element.remove()
 
 	elementCopy.addEventListener('animationend', ({target}) => {

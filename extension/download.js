@@ -149,7 +149,8 @@ message.onRequest('downloader.controls.delete', ({downloadID}, response) => {
 let downloadUpdatesWa = new WebSocket('http://localhost:1616/download/wa/updates')
 downloadUpdatesWa.addEventListener('message', ({data}) => {
 	let json = JSON.parse(data)
-	if (downloader.downloadStatus(json.status) != 'complete') {
+	//10485760 == 10MB
+	if (downloader.downloadStatus(json.status) != 'complete' || json['content-length'] < 10485760) {
 		return
 	}
 	downloader.download.getDownloadItem(json['download-id']).then((res) => {
