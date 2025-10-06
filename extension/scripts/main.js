@@ -141,3 +141,12 @@ function DeleteElementWithAnimation(element) {
 		target.remove()
 	})
 }
+
+/*
+ * Fix resume-pause double request issue
+ * Add resume-pause
+ * Make elements with hovering resource item url in href or in src noticeable.
+ * Make download popup dialog in the extension functional.
+ * Add download popup to the current web page when downloading.
+ * Control downloads.
+ */
