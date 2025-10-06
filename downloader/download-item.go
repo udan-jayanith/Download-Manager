@@ -99,7 +99,7 @@ type DownloadItem struct {
 	Updates      chan DownloadItemUpdate
 	TempFilePath string
 	Headers      []HTTPHeader
-	cancel       chan struct{}
+	cancel     chan struct{}
 	deleted      bool
 }
 
