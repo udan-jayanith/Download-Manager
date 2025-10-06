@@ -324,10 +324,21 @@ func deleteDownload(w http.ResponseWriter, r *http.Request) {
 
 	downloadItem, ok := downloadWorkPool.GetDownloadItem(int64(downloadId))
 	if !ok {
-		WriteError(w, "Download Item not found")
-		return
+		var downloadItemJson DownloadItemJson
+		err = Sqlite.Execute(func(db *sqlx.DB) error {
+			return db.Get(&downloadItemJson, `
+				SELECT * FROM downloads WHERE ID = ? LIMIT 1;
+			`, int64(downloadId))
+		})
+		downloadItemCopy, err := downloadItemJson.ToDownloadItem()
+		if err != nil {
+			WriteError(w, err.Error())
+			return
+		}
+		downloadItem = &downloadItemCopy
+	} else {
+		downloadItem.Update(0, 0, 0, fmt.Errorf("deleted"))
 	}
-	downloadItem.Update(0, 0, 0, fmt.Errorf("deleted"))
 
 	downloadItem.Cancel()
 	downloadItem.Delete()
