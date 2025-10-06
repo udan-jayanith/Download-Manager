@@ -169,7 +169,7 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			'.downloading-item-container'
 		)
 		let downloadingWaUpdates = new WebSocket('http://localhost:1616/download/wa/updates')
-		downloadingWaUpdates.addEventListener('message', async ({ data }) => {
+		downloadingWaUpdates.addEventListener('message', async ({data}) => {
 			let json = JSON.parse(data)
 			if (json.error != '') {
 				console.warn(json.error)
@@ -186,8 +186,31 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 				downloadingItemEl = newDownloadingItem(data)
 				downloadingItemContainer.prepend(downloadingItemEl)
 			}
-			console.log(downloadingItemEl)
-			console.log(json)
+
+			function calculateProgress(length, contentLength) {
+				if (contentLength == 0 || length == 0) {
+					return 0
+				}
+				return decimalPoints((length / contentLength) * 100, 2)
+			}
+
+			downloadingItemEl.querySelector('progress').value = calculateProgress(
+				json['length'],
+				json['content-length']
+			)
+			let downloadBottom = downloadingItemEl.querySelector('.download-bottom')
+
+			let contentLength = byte(json['content-length']).get()
+			let length = byte(json['length']).get()
+			downloadBottom.querySelector('.completion').innerText = `${
+				decimalPoints(length.data, 2) + ' ' + length.unit
+			} of ${decimalPoints(contentLength.data, 2) + ' ' + contentLength.unit}`
+
+			downloadBottom.querySelector('.estimated-time').innerText = json['estimated-time']
+
+			let unit = byte(json['bps']).get()
+			downloadBottom.querySelector('.download-speed').innerText =
+				decimalPoints(unit.data, 2) + ' ' + unit.unit + 'S'
 		})
 	}
 
