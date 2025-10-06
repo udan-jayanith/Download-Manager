@@ -123,20 +123,3 @@ function EventDelegation(parentElement, elementSelector, eventType, callback) {
 	})
 }
 
-async function fetch_HTML(page) {
-	let res = await fetch(page)
-	let reader = res.body.getReader()
-	reader.read().then(({value}) => {
-		let blob = new Blob([value], {
-			type: 'text/html',
-		})
-		blob.text().then((res) => {
-			let templateDocument = Document.parseHTMLUnsafe(res)
-			console.log(
-				templateDocument.querySelector('template').content.querySelector('h1').cloneNode(true)
-			)
-		})
-	})
-}
-
-fetch_HTML('./a.html')
