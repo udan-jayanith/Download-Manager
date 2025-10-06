@@ -124,3 +124,18 @@ function EventDelegation(parentElement, elementSelector, eventType, callback) {
 }
 
 componentSystem.rootDir = './components/'
+
+function DeleteElementWithAnimation(element) {
+	console.assert(element != null, 'Element is null')
+	console.assert(typeof element == 'object', 'element is not a HTML DOM element')
+
+	let elementCopy = element.cloneNode(true)
+	elementCopy.classList.add('delete-animation')
+
+	element.parentNode.replaceChild(elementCopy, element)
+	element.remove()
+
+	elementCopy.addEventListener('animationend', ({target}) => {
+		target.remove()
+	})
+}

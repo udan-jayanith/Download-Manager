@@ -21,7 +21,7 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 				return
 			}
 			downloadItems.forEach((el) => {
-				el.remove()
+				DeleteElementWithAnimation(el)
 			})
 		})
 	})
