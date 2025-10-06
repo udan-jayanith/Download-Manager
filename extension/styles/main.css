@@ -202,7 +202,7 @@ button {
 }
 
 .delete-animation {
-	animation: fade-out 0.5s forwards;
+	animation: fade-out 0.16s forwards;
 }
 
 @keyframes fade-out {

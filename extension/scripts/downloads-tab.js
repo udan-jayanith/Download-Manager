@@ -161,16 +161,39 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			list.forEach((data) => {
 				downloadingItemContainer.appendChild(newDownloadingItem(data))
 			})
-			if (list.length == 0) {
-				hideEl(downloadingItemContainer)
-			} else {
-				showEl(downloadingItemContainer)
+		})
+	}
+
+	function updateDownloadingContainerOnUpdate(downloadsTabContainer) {
+		let downloadingItemContainer = downloadsTabContainer.querySelector(
+			'.downloading-item-container'
+		)
+		let downloadingWaUpdates = new WebSocket('http://localhost:1616/download/wa/updates')
+		downloadingWaUpdates.addEventListener('message', async ({ data }) => {
+			let json = JSON.parse(data)
+			if (json.error != '') {
+				console.warn(json.error)
+				return
 			}
+			let downloadItemID = json['download-id']
+			console.assert(downloadItemID != undefined, 'Download ID is undefined.')
+
+			let downloadingItemEl = downloadingItemContainer.querySelector(
+				`.downloading-item[data-id="${downloadItemID}"]`
+			)
+			if (downloadingItemEl == null) {
+				let data = await downloader.download.getDownloadingItem(downloadItemID)
+				downloadingItemEl = newDownloadingItem(data)
+				downloadingItemContainer.prepend(downloadingItemEl)
+			}
+			console.log(downloadingItemEl)
+			console.log(json)
 		})
 	}
 
 	renderSearch(downloadsTabContainer)
 	renderDownloadingContainer(downloadsTabContainer)
+	updateDownloadingContainerOnUpdate(downloadsTabContainer)
 	renderDownloadedContainer(downloadsTabContainer)
 	main.set(downloadsTabContainer)
 })

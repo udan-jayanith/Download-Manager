@@ -116,6 +116,13 @@ message.onRequest('downloader.download.search-downloads', ({query}, response) =>
 	return true
 })
 
+message.onRequest('downloader.download.get-download-item', ({id}, response) => {
+	downloader.download.getDownloadItem(id).then((res) => {
+		response(res)
+	})
+	return true
+})
+
 //Controls
 message.onRequest('downloader.controls.pause', ({downloadID}, response) => {
 	downloader.controls.pauseDownload(downloadID).then((err) => {

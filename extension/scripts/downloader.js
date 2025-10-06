@@ -47,6 +47,12 @@ let downloader = {
 			})
 			return res
 		},
+		getDownloadingItem: async function (id) {
+			let res = await message.request('downloader.download.get-download-item', {
+				id: id
+			})
+			return res
+		}
 	},
 	controls: {
 		pause: async function (downloadID) {
