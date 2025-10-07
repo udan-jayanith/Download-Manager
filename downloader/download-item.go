@@ -99,7 +99,7 @@ type DownloadItem struct {
 	Updates      chan DownloadItemUpdate
 	TempFilePath string
 	Headers      []HTTPHeader
-	cancel     chan struct{}
+	cancel       chan struct{}
 	deleted      bool
 }
 
@@ -191,8 +191,15 @@ func (di *DownloadItem) Cancel() {
 	di.cancel <- struct{}{}
 }
 
-// Delete delete the downloadItem from the database. This also delete the save files and any files created.
+// Delete delete the downloadItem from the database.
 func (di *DownloadItem) Delete() {
+	Sqlite.Execute(func(db *sqlx.DB) error {
+		db.Exec(`
+		INSERT INTO fileDeletes (Filepath)
+		VALUES(?);
+		`, di.TempFilePath)
+		return nil
+	})
 	os.Remove(di.TempFilePath)
 
 	Sqlite.Execute(func(db *sqlx.DB) error {

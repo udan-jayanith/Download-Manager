@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -44,6 +45,49 @@ func HandleDownloads(mux *http.ServeMux) {
 	})
 	if err != nil {
 		log.Println("downloads table corruptions fix error")
+		log.Fatal(err)
+	}
+
+	err = Sqlite.Execute(func(db *sqlx.DB) error {
+		_, err := db.Exec(`
+			CREATE TABLE IF NOT EXISTS fileDeletes (
+				Filepath TEXT NOT NULL
+			);
+		`)
+		return err
+	})
+	if err != nil {
+		log.Println("fileDeletes table execution error.")
+		log.Fatal(err)
+	}
+
+	err = Sqlite.Execute(func(db *sqlx.DB) error {
+		rows, err := db.Query(`
+			SELECT Filepath FROM fileDeletes;
+		`)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var filepath string
+			err := rows.Scan(&filepath)
+			if err != nil {
+				return err
+			}
+
+			err = os.Remove(filepath)
+			if err != nil{
+				log.Println(err)
+			}
+		}
+
+		db.Exec(`DROP TABLE IF EXISTS fileDeletes;`)
+		return err
+	})
+	if err != nil {
+		log.Println("Left over temp files delete error.")
 		log.Fatal(err)
 	}
 
@@ -273,6 +317,7 @@ func pauseDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	downloadItem.Cancel()
+	downloadItem.Update(0, 0, 0, nil)
 }
 
 func resumeDownload(w http.ResponseWriter, r *http.Request) {
@@ -313,6 +358,7 @@ func resumeDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	downloadWorkPool.Download(downloadItem)
+	downloadItem.Update(0, 0, 0, nil)
 }
 
 func deleteDownload(w http.ResponseWriter, r *http.Request) {
