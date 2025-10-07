@@ -1,16 +1,20 @@
 let downloader = {
 	downloadStatus: function (status) {
 		switch (status) {
+			case '0':
 			case 0:
 				return 'pending'
+			case '1':
 			case 1:
 				return 'downloading'
+			case '2':
 			case 2:
 				return 'complete'
+			case '3':
 			case 3:
 				return 'paused'
 		}
-		return ''
+		return status
 	},
 	newDownloadReq: async function (url, fileName, extensionName, headers = []) {
 		let res = {
@@ -49,10 +53,10 @@ let downloader = {
 		},
 		getDownloadingItem: async function (id) {
 			let res = await message.request('downloader.download.get-download-item', {
-				id: id
+				id: id,
 			})
 			return res
-		}
+		},
 	},
 	controls: {
 		pause: async function (downloadID) {

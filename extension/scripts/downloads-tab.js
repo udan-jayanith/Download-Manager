@@ -140,9 +140,12 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 	function newDownloadingItem(data) {
 		let downloadingItem = downloadsTabTemplate.querySelector('.downloading-item').cloneNode(true)
 		downloadingItem.dataset.id = data.id
+		downloadingItem.dataset.partialContent = data['partial-content']
 		downloadingItem.querySelector('.download-file-name').innerText = data['file-name']
 
 		let downloadingOptions = downloadingItem.querySelector('.download-item-options')
+		let pauseResumeEl = downloadingOptions.querySelector('.pause-resume-btn')
+		pauseResumeEl.dataset.status = downloader.downloadStatus(data['status'])
 		downloadingOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
 		downloadingOptions.querySelector('.delete-download-item-btn').dataset.id = data.id
 
@@ -186,10 +189,36 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 				downloadingItemEl = newDownloadingItem(data)
 				downloadingItemContainer.prepend(downloadingItemEl)
 			}
+
+			let pauseResumeBtn = downloadingItemEl.querySelector('.pause-resume-btn')
 			if (json.error == 'deleted') {
 				DeleteElementWithAnimation(downloadingItemEl)
 				return
+			} else if (!json['partial-content']) {
+				hideEl(pauseResumeBtn)
+			} else if (json['partial-content']) {
+				showEl(pauseResumeBtn)
 			}
+			let downloadStatus = downloader.downloadStatus(json['status'])
+			pauseResumeBtn.dataset.status = downloadStatus
+			let iconEl = pauseResumeBtn.querySelector('i')
+			if (downloadStatus == 'complete') {
+				DeleteElementWithAnimation(downloadingItemEl)
+				let data = await downloader.download.getDownloadingItem(downloadItemID)
+				let downloadedItem = newDownloadedItem(data)
+				let downloadedItemContainer = downloadsTabContainer.querySelector(
+					'.downloaded-item-container'
+				)
+				downloadedItemContainer.prepend(downloadedItem)
+				return
+			} else if (downloadStatus == 'paused') {
+				iconEl.classList.remove('fa-circle-pause')
+				iconEl.classList.add('fa-play')
+			} else {
+				iconEl.classList.remove('fa-play')
+				iconEl.classList.add('fa-circle-pause')
+			}
+
 			function calculateProgress(length, contentLength) {
 				if (contentLength == 0 || length == 0) {
 					return 0
