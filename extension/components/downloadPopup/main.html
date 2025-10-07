@@ -14,8 +14,13 @@
 			<option value="">Others</option>
 		</select>
 		<div class="button-container">
-			<button class="done-btn">Done</button>
-			<button class="cancel-btn">Cancel</button>
+			<button class="done-btn" title="Download from Download Manager">
+				<i class="fa-solid fa-download"></i> Download
+			</button>
+			<button class="download-with-chrome" title="Download trough Chrome">
+				<i class="fa-brands fa-chrome"></i> Download
+			</button>
+			<button class="cancel-btn" title="Cancel download">Cancel</button>
 		</div>
 
 		<style>
@@ -48,21 +53,25 @@
 
 					button {
 						height: 32px;
-						width: 40px;
 						color: white;
 						font-weight: bold;
 						cursor: pointer;
 					}
 
-					.cancel-btn {
+					.cancel-btn,
+					.download-with-chrome {
 						background-color: var(--secondary-color);
+						width: max-content;
+					}
+					.done-btn {
+						width: max-content;
 					}
 				}
 			}
 
 			@media (orientation: landscape) {
 				.download-popup {
-					width: 600px; 
+					width: 600px;
 					padding: 10px;
 				}
 			}
