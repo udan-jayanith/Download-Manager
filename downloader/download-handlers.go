@@ -287,6 +287,11 @@ func resumeDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, ok := downloadWorkPool.GetDownloadItem(int64(downloadID))
+	if ok {
+		return
+	}
+
 	var downloadItemJson DownloadItemJson
 	err = Sqlite.Execute(func(db *sqlx.DB) error {
 		return db.Get(&downloadItemJson, `
