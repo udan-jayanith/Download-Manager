@@ -144,8 +144,18 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		downloadingItem.querySelector('.download-file-name').innerText = data['file-name']
 
 		let downloadingOptions = downloadingItem.querySelector('.download-item-options')
+		let downloadStatus = downloader.downloadStatus(data['status'])
+
 		let pauseResumeEl = downloadingOptions.querySelector('.pause-resume-btn')
-		pauseResumeEl.dataset.status = downloader.downloadStatus(data['status'])
+		let iconEl = pauseResumeEl.querySelector('i')
+		if (downloadStatus == 'paused') {
+			iconEl.classList.remove('fa-circle-pause')
+			iconEl.classList.add('fa-play')
+		} else {
+			iconEl.classList.remove('fa-play')
+			iconEl.classList.add('fa-circle-pause')
+		}
+		pauseResumeEl.dataset.status = downloadStatus
 		downloadingOptions.querySelector('.copy-download-link-btn').dataset.url = data.url
 		downloadingOptions.querySelector('.delete-download-item-btn').dataset.id = data.id
 
@@ -255,6 +265,30 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			})()
 		})
 	}
+
+	let downloadingItemContainer = downloadsTabContainer.querySelector(
+		'.downloading-item-container'
+	)
+	EventDelegation(downloadingItemContainer, '.pause-resume-btn', 'click', (el) => {
+		let downloadingItem = el.closest('.downloading-item')
+		console.assert(downloadingItem != null, 'DownloadingItem el is null')
+		if (!downloadingItem.dataset.partialContent) {
+			let msg = 'Play/Pause is not supported for this download.'
+			alert(msg)
+			return
+		}
+		let status = downloader.downloadStatus(el.dataset.status)
+		let downloadItemID = Number(downloadingItem.dataset.id)
+		if (status == 'paused') {
+			downloader.controls.resume(downloadItemID).then((json) => {
+				console.assert(json.error == undefined, json.error)
+			})
+		} else {
+			downloader.controls.pause(downloadItemID).then((json) => {
+				console.assert(json.error == undefined, json.error)
+			})
+		}
+	})
 
 	renderSearch(downloadsTabContainer)
 	renderDownloadingContainer(downloadsTabContainer)
