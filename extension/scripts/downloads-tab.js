@@ -177,10 +177,79 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		})
 	}
 
+	async function updateDownloadingItem(downloadingItemContainer, json) {
+		let downloadItemID = json['download-id']
+		let downloadingItemEl = downloadingItemContainer.querySelector(
+			`.downloading-item[data-id="${downloadItemID}"]`
+		)
+		if (downloadingItemEl == null) {
+			let data = await downloader.download.getDownloadingItem(downloadItemID)
+			downloadingItemEl = newDownloadingItem(data)
+			downloadingItemContainer.prepend(downloadingItemEl)
+		}
+
+		let pauseResumeBtn = downloadingItemEl.querySelector('.pause-resume-btn')
+		if (!json['partial-content']) {
+			hideEl(pauseResumeBtn)
+		} else if (json['partial-content']) {
+			showEl(pauseResumeBtn)
+		}
+
+		let downloadStatus = downloader.downloadStatus(json['status'])
+		pauseResumeBtn.dataset.status = downloadStatus
+		let iconEl = pauseResumeBtn.querySelector('i')
+		if (downloadStatus == 'complete') {
+			DeleteElementWithAnimation(downloadingItemEl)
+			let data = await downloader.download.getDownloadingItem(downloadItemID)
+			let downloadedItem = newDownloadedItem(data)
+			let downloadedItemContainer = downloadsTabContainer.querySelector(
+				'.downloaded-item-container'
+			)
+			downloadedItemContainer.prepend(downloadedItem)
+			return
+		} else if (downloadStatus == 'paused') {
+			console.log(iconEl)
+			iconEl.classList.remove('fa-circle-pause')
+			iconEl.classList.add('fa-play')
+		} else {
+			iconEl.classList.remove('fa-play')
+			iconEl.classList.add('fa-circle-pause')
+		}
+		downloadingItemEl.querySelector('progress').value = (function (length, contentLength) {
+			if (contentLength == 0 || length == 0) {
+				return 0
+			}
+			return decimalPoints((length / contentLength) * 100, 2)
+		})(json['length'], json['content-length'])
+
+		let downloadBottom = downloadingItemEl.querySelector('.download-bottom')
+		let contentLength = byte(json['content-length']).get()
+		let length = byte(json['length']).get()
+		downloadBottom.querySelector('.completion').innerText = `${
+			decimalPoints(length.data, 2) + ' ' + length.unit
+		} of ${decimalPoints(contentLength.data, 2) + ' ' + contentLength.unit}`
+
+		let estimatedTime = seconds(json['estimated-time'])
+		downloadBottom.querySelector('.estimated-time').innerText = `${decimalPoints(
+			estimatedTime.count,
+			2
+		)} ${estimatedTime.unit}`
+		let unit = byte(json['bps']).get()
+		downloadBottom.querySelector('.download-speed').innerText = (function () {
+			if (unit.unit == 'Byte') {
+				unit.unit = 'BPS'
+			} else {
+				unit.unit = unit.unit + 'PS'
+			}
+			return decimalPoints(unit.data, 2) + ' ' + unit.unit
+		})()
+	}
+
 	function updateDownloadingContainerOnUpdate(downloadsTabContainer) {
 		let downloadingItemContainer = downloadsTabContainer.querySelector(
 			'.downloading-item-container'
 		)
+
 		let downloadingWaUpdates = new WebSocket('http://localhost:1616/download/wa/updates')
 		downloadingWaUpdates.addEventListener('message', async ({data}) => {
 			let json = JSON.parse(data)
@@ -191,78 +260,17 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			let downloadItemID = json['download-id']
 			console.assert(downloadItemID != undefined, 'Download ID is undefined.')
 
-			let downloadingItemEl = downloadingItemContainer.querySelector(
-				`.downloading-item[data-id="${downloadItemID}"]`
-			)
-			if (downloadingItemEl == null) {
-				let data = await downloader.download.getDownloadingItem(downloadItemID)
-				downloadingItemEl = newDownloadingItem(data)
-				downloadingItemContainer.prepend(downloadingItemEl)
-			}
-
-			let pauseResumeBtn = downloadingItemEl.querySelector('.pause-resume-btn')
 			if (json.error == 'deleted') {
-				DeleteElementWithAnimation(downloadingItemEl)
-				return
-			} else if (!json['partial-content']) {
-				hideEl(pauseResumeBtn)
-			} else if (json['partial-content']) {
-				showEl(pauseResumeBtn)
-			}
-			let downloadStatus = downloader.downloadStatus(json['status'])
-			pauseResumeBtn.dataset.status = downloadStatus
-			let iconEl = pauseResumeBtn.querySelector('i')
-			if (downloadStatus == 'complete') {
-				DeleteElementWithAnimation(downloadingItemEl)
-				let data = await downloader.download.getDownloadingItem(downloadItemID)
-				let downloadedItem = newDownloadedItem(data)
-				let downloadedItemContainer = downloadsTabContainer.querySelector(
-					'.downloaded-item-container'
+				let downloadItemEl = downloadsTabContainer.querySelector(
+					`.downloading-item-container .downloading-item[data-id="${downloadItemID}"], .downloaded-item-container .downloaded-item[data-id="${downloadItemID}"]`
 				)
-				downloadedItemContainer.prepend(downloadedItem)
-				return
-			} else if (downloadStatus == 'paused') {
-				iconEl.classList.remove('fa-circle-pause')
-				iconEl.classList.add('fa-play')
+				if (downloadItemEl == null) {
+					return
+				}
+				DeleteElementWithAnimation(downloadItemEl)
 			} else {
-				iconEl.classList.remove('fa-play')
-				iconEl.classList.add('fa-circle-pause')
+				updateDownloadingItem(downloadingItemContainer, json)
 			}
-
-			function calculateProgress(length, contentLength) {
-				if (contentLength == 0 || length == 0) {
-					return 0
-				}
-				return decimalPoints((length / contentLength) * 100, 2)
-			}
-
-			downloadingItemEl.querySelector('progress').value = calculateProgress(
-				json['length'],
-				json['content-length']
-			)
-			let downloadBottom = downloadingItemEl.querySelector('.download-bottom')
-
-			let contentLength = byte(json['content-length']).get()
-			let length = byte(json['length']).get()
-			downloadBottom.querySelector('.completion').innerText = `${
-				decimalPoints(length.data, 2) + ' ' + length.unit
-			} of ${decimalPoints(contentLength.data, 2) + ' ' + contentLength.unit}`
-
-			let estimatedTime = seconds(json['estimated-time'])
-			downloadBottom.querySelector('.estimated-time').innerText = `${decimalPoints(
-				estimatedTime.count,
-				2
-			)} ${estimatedTime.unit}`
-
-			let unit = byte(json['bps']).get()
-			downloadBottom.querySelector('.download-speed').innerText = (function () {
-				if (unit.unit == 'Byte') {
-					unit.unit = 'BPS'
-				} else {
-					unit.unit = unit.unit + 'PS'
-				}
-				return decimalPoints(unit.data, 2) + ' ' + unit.unit
-			})()
 		})
 	}
 
