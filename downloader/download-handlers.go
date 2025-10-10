@@ -78,7 +78,7 @@ func HandleDownloads(mux *http.ServeMux) {
 			}
 
 			err = os.Remove(filepath)
-			if err != nil{
+			if err != nil {
 				log.Println(err)
 			}
 		}
@@ -316,8 +316,8 @@ func pauseDownload(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, "Pause is not supported.")
 		return
 	}
-	downloadItem.Cancel()
-	downloadItem.Update(0, 0, 0, nil)
+
+	downloadItem.Cancel(nil)
 }
 
 func resumeDownload(w http.ResponseWriter, r *http.Request) {
@@ -387,10 +387,10 @@ func deleteDownload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		downloadItem = &downloadItemCopy
-	} else {
-		downloadItem.Update(0, 0, 0, fmt.Errorf("deleted"))
 	}
 
-	downloadItem.Cancel()
+	if ok {
+		downloadItem.Cancel(fmt.Errorf("deleted"))
+	}
 	downloadItem.Delete()
 }

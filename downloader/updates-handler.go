@@ -26,7 +26,7 @@ func (uh *UpdatesHandler) Handle() {
 		for update := range uh.updatesChan {
 			updateJSON, err := update.JSON()
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
 
 			deleteBuf := make([]*websocket.Conn, 0)

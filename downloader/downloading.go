@@ -43,7 +43,7 @@ type UpdateChan interface {
 	ChangeStatus(status DownloadStatus) error
 }
 
-func download(req *http.Request, destFilepath string, updates UpdateChan, cancelChan chan struct{}) {
+func download(req *http.Request, destFilepath string, updates UpdateChan, cancelChan chan error) {
 	updates.ChangeStatus(Pending)
 
 	destFile, err := os.OpenFile(destFilepath, os.O_RDWR, 0777)
@@ -83,9 +83,10 @@ func download(req *http.Request, destFilepath string, updates UpdateChan, cancel
 		}
 
 		select {
-		case <-cancelChan:
+		case err = <-cancelChan:
 			updates.ChangeStatus(Paused)
-			updates.Update(0, 0, 0, nil)
+			updates.Update(0, 0, 0, err)
+			cancelChan <- nil
 			return
 		default:
 		}

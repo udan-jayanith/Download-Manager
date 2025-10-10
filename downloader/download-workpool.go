@@ -33,7 +33,7 @@ func NewDownloadWorkPool() DownloadWorkPool {
 			go func() {
 				for update := range downloadItem.Updates {
 					workPool.Updates <- update
-					if update.Status == Complete || update.Status == Paused {
+					if downloadItem.deleted {
 						break
 					}
 				}

@@ -99,7 +99,7 @@ type DownloadItem struct {
 	Updates      chan DownloadItemUpdate
 	TempFilePath string
 	Headers      []HTTPHeader
-	cancel       chan struct{}
+	cancel       chan error
 	deleted      bool
 }
 
@@ -113,7 +113,7 @@ func NewDownloadItem(downloadRequest DownloadRequest) DownloadItem {
 		Updates:        make(chan DownloadItemUpdate, 8),
 		PartialContent: false,
 
-		cancel:  make(chan struct{}, 1),
+		cancel:  make(chan error),
 		deleted: false,
 		Headers: downloadRequest.Headers, //Headers does not get saved in the database.
 	}
@@ -186,9 +186,9 @@ func (di *DownloadItem) updateTempFilepath() error {
 	})
 }
 
-func (di *DownloadItem) Cancel() {
-	di.deleted = true
-	di.cancel <- struct{}{}
+func (di *DownloadItem) Cancel(err error) {
+	di.cancel <- err
+	<-di.cancel
 }
 
 // Delete delete the downloadItem from the database.
@@ -211,6 +211,7 @@ func (di *DownloadItem) Delete() {
 }
 
 func (di *DownloadItem) Close() {
+	di.deleted = true
 	close(di.cancel)
 	close(di.Updates)
 }
@@ -239,7 +240,7 @@ func (dij *DownloadItemJson) ToDownloadItem() (downloadItem DownloadItem, err er
 
 		deleted: false,
 		Updates: make(chan DownloadItemUpdate, 8),
-		cancel:  make(chan struct{}, 1),
+		cancel:  make(chan error),
 	}
 	//Date and time and Status
 	t, err := time.Parse(time.RFC3339, dij.DateAndTime)
