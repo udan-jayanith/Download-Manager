@@ -142,6 +142,14 @@ function DeleteElementWithAnimation(element) {
 	})
 }
 
+function getFileExtensionNameFromFileName(filename) {
+	let res = ''
+	for (let i = filename.length - 1; i >= 0 && filename[i] != '.'; i--) {
+		res = filename[i] + res
+	}
+	return res
+}
+
 /*
  * Make download popup dialog in the extension functional.
  * Make elements with hovering resource item url in href or in src noticeable.

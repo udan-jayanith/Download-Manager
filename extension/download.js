@@ -33,7 +33,10 @@ let downloader = {
 				body: JSON.stringify(downloadReq),
 				method: 'POST',
 			})
-			let json = res.headers.get('Content-Type') == 'application/json' ? await res.json() : {}
+			let json = {}
+			if (res.headers.get('Content-Type') == 'application/json') {
+				json = await res.json
+			}
 			return json
 		},
 		getDownloads: async function (dateAndTime) {

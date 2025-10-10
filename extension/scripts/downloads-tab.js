@@ -286,7 +286,7 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		downloadingWaUpdates.addEventListener('message', async ({data}) => {
 			let json = JSON.parse(data)
 			if (json.error != '' && json.error != 'deleted') {
-				console.warn(json.error)
+				console.log(json.error)
 				return
 			}
 			let downloadItemID = json['download-id']
@@ -337,14 +337,6 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 	main.set(downloadsTabContainer)
 })
 
-function getFileExtensionNameFromFileName(filename) {
-	let res = ''
-	for (let i = filename.length - 1; i >= 0 && filename[i] != '.'; i--) {
-		res = filename[i] + res
-	}
-	return res
-}
-
 function getExtensionNameFromURL(url) {
 	try {
 		let {pathname} = new URL(url)
@@ -367,20 +359,55 @@ async function handleDownloadDialogPopup(el, url = '') {
 	let warnEl = el.querySelector('.warn')
 	hideEl(warnEl)
 
-	el.querySelector('.download-url').value = url
+	let urlInputEl = el.querySelector('.download-url')
+	urlInputEl.value = url
 
-	try {
-		let {pathname} = new URL(url)
-		el.querySelector('.save-file-name').value = getFilename(pathname)
-	} catch (err) {}
+	let saveFilenameEl = el.querySelector('.save-file-name')
+	function getSaveFilename(url) {
+		try {
+			let {pathname} = new URL(url)
+			return getFilename(pathname)
+		} catch (err) {
+			return ''
+		}
+	}
+	saveFilenameEl.value = getSaveFilename(url)
 
-	let selectEl = el.querySelector('.download-folder-input')
+	function closeDialog(dialogEl) {
+		dialogEl.close()
+		dialogEl.remove()
+	}
 
-	let details = await getMediaDir(getExtensionNameFromURL(url))
-	selectEl.value = details.type
+	el.querySelector('.done-btn').addEventListener('click', async () => {
+		let url = urlInputEl.value.trim()
+		if (url == '') {
+			warnEl.innerText = 'URL cannot be empty'
+			showEl(warnEl)
+			return
+		}
+
+		let saveFilename =
+			saveFilenameEl.value.trim() != '' ? saveFilenameEl.value.trim() : getSaveFilename(url)
+		if (saveFilename == '') {
+			warnEl.innerText = 'Save file name is empty'
+			showEl(warnEl)
+			return
+		}
+
+		try {
+			new URL(url)
+
+			let downloadReq = await downloader.newDownloadReq(url, saveFilename)
+			downloader.download.download(downloadReq).then(() => {
+				closeDialog(el)
+			})
+		} catch (err) {
+			warnEl.innerText = err
+			showEl(warnEl)
+		}
+	})
 
 	el.querySelector('.cancel-btn').addEventListener('click', () => {
-		el.close()
-		el.remove()
+		closeDialog(el)
 	})
 }

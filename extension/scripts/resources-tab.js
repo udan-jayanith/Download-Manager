@@ -84,8 +84,7 @@ async function setResourcesTab() {
 		console.assert(webRequest != undefined, 'webRequest is not found in the webRequestsMap.')
 		let downloadReq = await downloader.newDownloadReq(
 			webRequest.url,
-			webRequest.fileName,
-			webRequest.extensionName,
+			webRequest.fileName + '.' + webRequest.extensionName,
 			webRequest.headers
 		)
 		let res = await downloader.download.download(downloadReq)
