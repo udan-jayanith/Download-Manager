@@ -26,6 +26,35 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		})
 	})
 
+	EventDelegation(
+		downloadsTabContainer,
+		'.downloaded-item .download-file-name',
+		'click',
+		(el) => {
+			let location = el.dataset.location
+			chrome.tabs
+				.query({
+					active: true,
+					currentWindow: true,
+				})
+				.then((res) => {
+					if (res == undefined || res.length <= 0) {
+						return
+					}
+					let activeTab = res[0]
+					let url = new URL(activeTab.url)
+					if (url.protocol == 'file:') {
+						chrome.tabs.update(activeTab.id, {
+							active: true,
+							url: location,
+						})
+					} else {
+						window.open(location, '_blank')
+					}
+				})
+		}
+	)
+
 	downloadsTabContainer.querySelector('.download-btn').addEventListener('click', () => {
 		componentSystem.loadComponent('/downloadPopup/main.html').then((component) => {
 			let dialogPopupEl = component.querySelector('dialog')
@@ -40,7 +69,9 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		downloadedItem.dataset.id = data.id
 		downloadedItem.dataset.dateAndTime = data['date-and-time']
 		let fileName = downloadedItem.querySelector('.download-file-name')
-		fileName.href = `${data.dir}${navigator.platform == 'Win32' ? '\\' : '/'}${data['file-name']}`
+		fileName.dataset.location = `${data.dir}${navigator.platform == 'Win32' ? '\\' : '/'}${
+			data['file-name']
+		}`
 		fileName.title = getFileExtensionNameFromFileName(data['file-name'])
 
 		let downloadItemOptions = downloadedItem.querySelector('.download-item-options')
@@ -68,7 +99,6 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 
 		let rendering = false
 		searchBarInputEl.addEventListener('input', (e) => {
-			console.log(getInputValue(e).trim())
 			if (getInputValue(e).trim() == '') {
 				hideEl(searchResultsContainerEl)
 				searchResultsContainerEl.innerHTML = null

@@ -47,6 +47,7 @@
 	color: #3f414b;
 	font-family: 'Open Sans', sans-serif;
 	text-decoration: none;
+
 	&:hover {
 		text-decoration: underline;
 	}
