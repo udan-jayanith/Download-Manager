@@ -156,23 +156,38 @@ function stringBooleanToBoolean(stringBoolean) {
 
 async function getMediaDir(extensionName) {
 	let settings = await getSettings()
+	let res = {
+		type: 'other',
+		dir: settings.othersDir,
+	}
+
 	let keys = Object.keys(settings.mediaTypes)
 	for (let i = 0; i < keys.length; i++) {
 		let key = keys[i]
 		if (settings.mediaTypes[key][extensionName]) {
 			switch (key) {
 				case 'document':
-					return settings.documentsDir
+					res.type = 'document'
+					res.dir = settings.documentsDir
+					return res
 				case 'compressed':
-					return settings.compressedDir
+					res.type = 'compressed'
+					res.dir = settings.compressedDir
+					return res
 				case 'audio':
-					return settings.audiosDir
+					res.type = 'audio'
+					res.dir = settings.audiosDir
+					return res
 				case 'video':
-					return settings.videosDir
+					res.type = 'video'
+					res.dir = settings.videosDir
+					return res
 				case 'image':
-					return settings.imagesDir
+					res.type = 'image'
+					res.dir = settings.imagesDir
+					return res
 			}
 		}
 	}
-	return settings.othersDir
+	return res
 }

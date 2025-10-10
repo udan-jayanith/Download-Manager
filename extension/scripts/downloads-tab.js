@@ -61,14 +61,8 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			document.body.prepend(dialogPopupEl)
 
 			let inputEl = downloadsTabContainer.querySelector('.download-input-container input')
-			dialogPopupEl.querySelector('.download-url').value = inputEl.value
-			try {
-				let {pathname} = new URL(inputEl.value)
-				dialogPopupEl.querySelector('.save-file-name').value = getFilename(pathname)
-			} catch (err) {}
-
+			handleDownloadDialogPopup(dialogPopupEl, inputEl.value)
 			inputEl.value = ''
-			handleDownloadDialogPopup(dialogPopupEl)
 		})
 	})
 
@@ -352,8 +346,12 @@ function getFileExtensionNameFromFileName(filename) {
 }
 
 function getExtensionNameFromURL(url) {
-	let {pathname} = new URL(url)
-	return getFileExtensionNameFromFileName(pathname)
+	try {
+		let {pathname} = new URL(url)
+		return getFileExtensionNameFromFileName(pathname)
+	} catch (err) {
+		return ''
+	}
 }
 
 function getFilename(pathname) {
@@ -364,17 +362,25 @@ function getFilename(pathname) {
 	return res
 }
 
-async function handleDownloadDialogPopup(el) {
+async function handleDownloadDialogPopup(el, url = '') {
 	el.showModal()
 	let warnEl = el.querySelector('.warn')
 	hideEl(warnEl)
+
+	el.querySelector('.download-url').value = url
+
+	try {
+		let {pathname} = new URL(url)
+		el.querySelector('.save-file-name').value = getFilename(pathname)
+	} catch (err) {}
+
+	let selectEl = el.querySelector('.download-folder-input')
+
+	let details = await getMediaDir(getExtensionNameFromURL(url))
+	selectEl.value = details.type
 
 	el.querySelector('.cancel-btn').addEventListener('click', () => {
 		el.close()
 		el.remove()
 	})
-
-	function selectValueForExtensionName(extensionName){}
-	function getDirForInputValue(value) { }
-	function getInputValueForDir(value){}
 }

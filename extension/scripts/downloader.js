@@ -17,9 +17,10 @@ let downloader = {
 		return status
 	},
 	newDownloadReq: async function (url, fileName, extensionName, headers = []) {
+		let dir = await getMediaDir(extensionName)
 		let res = {
 			url: url,
-			dir: await getMediaDir(extensionName),
+			dir: await dir.dir,
 			headers: headers,
 		}
 		res['file-name'] = `${fileName}.${extensionName}`
