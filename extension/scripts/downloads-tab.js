@@ -59,7 +59,16 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 		componentSystem.loadComponent('/downloadPopup/main.html').then((component) => {
 			let dialogPopupEl = component.querySelector('dialog')
 			document.body.prepend(dialogPopupEl)
-			dialogPopupEl.showModal()
+
+			let inputEl = downloadsTabContainer.querySelector('.download-input-container input')
+			dialogPopupEl.querySelector('.download-url').value = inputEl.value
+			try {
+				let {pathname} = new URL(inputEl.value)
+				dialogPopupEl.querySelector('.save-file-name').value = getFilename(pathname)
+			} catch (err) {}
+
+			inputEl.value = ''
+			handleDownloadDialogPopup(dialogPopupEl)
 		})
 	})
 
@@ -238,7 +247,6 @@ document.querySelector('.downloads-tab').addEventListener('click', () => {
 			downloadedItemContainer.prepend(downloadedItem)
 			return
 		} else if (downloadStatus == 'paused') {
-			console.log(iconEl)
 			iconEl.classList.remove('fa-circle-pause')
 			iconEl.classList.add('fa-play')
 		} else {
@@ -341,4 +349,32 @@ function getFileExtensionNameFromFileName(filename) {
 		res = filename[i] + res
 	}
 	return res
+}
+
+function getExtensionNameFromURL(url) {
+	let {pathname} = new URL(url)
+	return getFileExtensionNameFromFileName(pathname)
+}
+
+function getFilename(pathname) {
+	let res = ''
+	for (let i = pathname.length - 1; i >= 0 && pathname[i] != '/'; i--) {
+		res = pathname[i] + res
+	}
+	return res
+}
+
+async function handleDownloadDialogPopup(el) {
+	el.showModal()
+	let warnEl = el.querySelector('.warn')
+	hideEl(warnEl)
+
+	el.querySelector('.cancel-btn').addEventListener('click', () => {
+		el.close()
+		el.remove()
+	})
+
+	function selectValueForExtensionName(extensionName){}
+	function getDirForInputValue(value) { }
+	function getInputValueForDir(value){}
 }

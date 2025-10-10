@@ -1,18 +1,26 @@
 <template>
 	<dialog class="download-popup">
-		<label for="download-url">URL</label>
-		<input type="url" id="download-url" placeholder="example.com" />
-		<label for="file-name">Save file name</label>
-		<input type="text" id="file-name" placeholder="image.jpg" />
-		<label for="folder-location">Select download folder</label>
-		<select id="folder-location">
-			<option value="">Documents</option>
-			<option value="">Videos</option>
-			<option value="">Audios</option>
-			<option value="">Images</option>
-			<option value="">Compressed</option>
-			<option value="">Others</option>
-		</select>
+		<div class="input-container">
+			<label for="download-url">URL</label>
+			<input type="url" id="download-url" placeholder="example.com" class="download-url"/>
+		</div>
+		<div class="input-container">
+			<label for="file-name">Save file name</label>
+			<input type="text" id="file-name" placeholder="image.jpg" class="save-file-name"/>
+		</div>
+		<div class="input-container">
+			<label for="folder-location">Select download folder</label>
+			<select id="folder-location" value="image">
+				<option value="image">Images</option>
+				<option value="video">Videos</option>
+				<option value="audio">Audios</option>
+				<option value="compressed">Compressed</option>
+				<option value="document">Documents</option>
+				<option value="other">Others</option>
+			</select>
+		</div>
+
+		<span class="warn"></span>
 		<div class="button-container">
 			<button class="done-btn" title="Download from Download Manager">
 				<i class="fa-solid fa-download"></i> Download
@@ -30,6 +38,7 @@
 				justify-content: center;
 				align-items: flex-start;
 				flex-wrap: nowrap;
+				gap: 10px;
 
 				width: 100%;
 				height: fit-content;
@@ -39,16 +48,23 @@
 					padding-left: 4px;
 					font-size: 14px;
 				}
-				input,
-				select {
-					margin-bottom: 10px;
+
+				.input-container {
+					width: 100%;
+				}
+
+				.warn {
+					color: rgb(249, 43, 43);
+					font-size: 12px;
+					padding-left: 4px;
 				}
 
 				.button-container {
 					display: flex;
 					flex-direction: row;
-					justify-content: space-between;
+					justify-content: left;
 					align-items: center;
+					gap: 10px;
 					width: 100%;
 
 					button {
