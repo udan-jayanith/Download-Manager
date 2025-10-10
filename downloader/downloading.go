@@ -120,7 +120,9 @@ func download(req *http.Request, destFilepath string, updates UpdateChan, cancel
 
 func getHttpReqRes(req *http.Request) (*http.Response, error) {
 	res, err := http.DefaultClient.Do(req)
-	res.Body.Close()
+	if err == nil {
+		res.Body.Close()
+	}
 	return res, err
 }
 
@@ -134,6 +136,9 @@ func httpDownloadReq(url string, headers []HTTPHeader, destFilepath string) (Dow
 	downloadReq := *new(DownloadReq)
 
 	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return downloadReq, err
+	}
 	for _, header := range headers {
 		req.Header.Set(header.Name, header.Value)
 	}

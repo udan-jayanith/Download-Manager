@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 type DownloadWorkPool struct {
 	downloads     chan *DownloadItem
