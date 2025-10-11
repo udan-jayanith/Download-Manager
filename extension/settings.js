@@ -39,6 +39,7 @@ settings.mediaTypes = {
 		gz: true,
 		iso: true,
 		zip: true,
+		'octet-stream': true,
 	},
 	audio: {
 		wav: true,
