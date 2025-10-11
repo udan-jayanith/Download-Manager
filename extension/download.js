@@ -35,7 +35,7 @@ let downloader = {
 			})
 			let json = {}
 			if (res.headers.get('Content-Type') == 'application/json') {
-				json = await res.json
+				json = await res.json()
 			}
 			return json
 		},
@@ -169,6 +169,52 @@ message.onRequest('downloader.allowDownload', ({url}) => {
 	allowedDownloads.add(url)
 })
 
+async function getMediaDir(extensionName) {
+	let settings = await getSettings()
+	let res = {
+		type: 'other',
+		dir: settings.othersDir,
+	}
+
+	let keys = Object.keys(settings.mediaTypes)
+	for (let i = 0; i < keys.length; i++) {
+		let key = keys[i]
+		if (settings.mediaTypes[key][extensionName]) {
+			switch (key) {
+				case 'document':
+					res.type = 'document'
+					res.dir = settings.documentsDir
+					return res
+				case 'compressed':
+					res.type = 'compressed'
+					res.dir = settings.compressedDir
+					return res
+				case 'audio':
+					res.type = 'audio'
+					res.dir = settings.audiosDir
+					return res
+				case 'video':
+					res.type = 'video'
+					res.dir = settings.videosDir
+					return res
+				case 'image':
+					res.type = 'image'
+					res.dir = settings.imagesDir
+					return res
+			}
+		}
+	}
+	return res
+}
+
+function getFileExtensionNameFromFileName(filename) {
+	let res = ''
+	for (let i = filename.length - 1; i >= 0 && filename[i] != '.'; i--) {
+		res = filename[i] + res
+	}
+	return res
+}
+
 chrome.downloads.onCreated.addListener((downloadItem) => {
 	if (downloadItem.byExtensionId != undefined || allowedDownloads.has(downloadItem.url)) {
 		allowedDownloads.delete(downloadItem.url)
@@ -177,4 +223,29 @@ chrome.downloads.onCreated.addListener((downloadItem) => {
 
 	let downloadID = downloadItem.id
 	chrome.downloads.cancel(downloadID)
+
+	let filename = downloadItem.filename.trim()
+	let extensionName = mediaTypeExtensionName(downloadItem.mime)
+
+	let url = downloadItem.finalUrl
+	let urlInfo = parseURL(url)
+	if (urlInfo.fileName == '') {
+		urlInfo.fileName = randomString(8)
+	}
+	if (urlInfo.extensionName != '') {
+		extensionName = urlInfo.extensionName
+	}
+	if (filename == '') {
+		filename = urlInfo.fileName + '.' + extensionName
+	}
+
+	getMediaDir(extensionName).then(({dir}) => {
+		let downloadReq = downloader.newDownloadReq(url, filename, dir)
+		downloader.download.download(downloadReq).then((json) => {
+			if (json.error == undefined || json.error.trim() == '') {
+				return
+			}
+			console.log(json.error)
+		})
+	})
 })
