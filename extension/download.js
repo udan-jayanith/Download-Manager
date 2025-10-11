@@ -171,6 +171,7 @@ message.onRequest('downloader.allowDownload', ({url}) => {
 
 chrome.downloads.onCreated.addListener((downloadItem) => {
 	if (downloadItem.byExtensionId != undefined || allowedDownloads.has(downloadItem.url)) {
+		allowedDownloads.delete(downloadItem.url)
 		return
 	}
 

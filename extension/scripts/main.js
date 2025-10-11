@@ -151,7 +151,6 @@ function getFileExtensionNameFromFileName(filename) {
 }
 
 /*
- * Make download popup dialog in the extension functional.
  * Make elements with hovering resource item url in href or in src noticeable.
  * Add download popup to the current web page when downloading.
  * Cookies
