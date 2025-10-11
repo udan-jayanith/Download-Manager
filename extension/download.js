@@ -1,3 +1,36 @@
+function getDomainNames(url) {
+	let domains = []
+	let {hostname} = new URL(url)
+	hostname = hostname
+	domains.push(hostname)
+
+	let dotCount = 0
+	let simpleDomainName = ''
+	for (let i = hostname.length - 1; i >= 0; i--) {
+		if (hostname[i] == '.') {
+			dotCount++
+		}
+		if (dotCount >= 2) {
+			break
+		}
+		simpleDomainName = hostname[i] + simpleDomainName
+	}
+
+	if (simpleDomainName != hostname) {
+		domains.push(simpleDomainName)
+		domains.push('.' + simpleDomainName)
+	}
+	return domains
+}
+
+function buildCookiesValue(cookiesList) {
+	let values = []
+	cookiesList.forEach((cookie) => {
+		values.push(`${cookie.name}=${cookie.value}`)
+	})
+	return values.join('; ')
+}
+
 let downloader = {
 	origin: 'http://localhost:1616',
 	downloadStatus: function (status) {
@@ -29,6 +62,29 @@ let downloader = {
 	},
 	download: {
 		download: async function (downloadReq) {
+			try {
+				let url = new URL(downloadReq.url)
+				if (url.protocol == 'https:' || url.protocol == 'http:') {
+					let domains = getDomainNames(url)
+					let cookiesList = []
+					for (let i = 0; i < domains.length; i++) {
+						let domain = domains[i]
+
+						let cookies = await chrome.cookies.getAll({
+							domain: domain,
+						})
+
+						cookiesList.push(...cookies)
+					}
+
+					downloadReq.headers.push({name: 'Cookie', value: buildCookiesValue(cookiesList)})
+				}
+			} catch (err) {
+				return {
+					error: err,
+				}
+			}
+
 			let res = await fetchFromDownloader('http://localhost:1616/download/download', {
 				body: JSON.stringify(downloadReq),
 				method: 'POST',
@@ -242,7 +298,7 @@ chrome.downloads.onCreated.addListener((downloadItem) => {
 	getMediaDir(extensionName).then(({dir}) => {
 		let downloadReq = downloader.newDownloadReq(url, filename, dir)
 		downloader.download.download(downloadReq).then((json) => {
-			if (json.error == undefined || json.error.trim() == '') {
+			if (json.error == undefined || (json.error != undefined && json.error == '')) {
 				return
 			}
 			console.log(json.error)
