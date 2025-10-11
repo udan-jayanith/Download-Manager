@@ -407,6 +407,35 @@ async function handleDownloadDialogPopup(el, url = '') {
 		}
 	})
 
+	el.querySelector('.download-with-chrome').addEventListener('click', () => {
+		let url = urlInputEl.value.trim()
+		if (url == '') {
+			warnEl.innerText = 'URL cannot be empty'
+			showEl(warnEl)
+			return
+		}
+
+		let saveFilename = saveFilenameEl.value.trim()
+		try {
+			new URL(url)
+
+			let downloadReq = {
+				url: url,
+			}
+			if (saveFilename != '') {
+				downloadReq.filename = saveFilename
+			}
+
+			message.request('downloader.allowDownload', downloadReq)
+			chrome.downloads.download(downloadReq).then(() => {
+				closeDialog(el)
+			})
+		} catch (err) {
+			warnEl.innerText = err
+			showEl(warnEl)
+		}
+	})
+
 	el.querySelector('.cancel-btn').addEventListener('click', () => {
 		closeDialog(el)
 	})

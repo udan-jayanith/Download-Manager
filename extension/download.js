@@ -163,3 +163,17 @@ downloadUpdatesWa.addEventListener('message', ({data}) => {
 		notify(title, message)
 	})
 })
+
+let allowedDownloads = new Set()
+message.onRequest('downloader.allowDownload', ({url}) => {
+	allowedDownloads.add(url)
+})
+
+chrome.downloads.onCreated.addListener((downloadItem) => {
+	if (downloadItem.byExtensionId != undefined || allowedDownloads.has(downloadItem.url)) {
+		return
+	}
+
+	let downloadID = downloadItem.id
+	chrome.downloads.cancel(downloadID)
+})
