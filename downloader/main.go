@@ -2,17 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/joho/godotenv"
 	_ "modernc.org/sqlite"
 )
 
 var (
-	_                = godotenv.Load("./.env")
 	downloadWorkPool = NewDownloadWorkPool()
 	updatesHandler   = UpdatesHandler{
 		maxConnections: 4,
@@ -32,7 +29,8 @@ func main() {
 	fs := http.FileServer(http.Dir("./pages"))
 	mux.Handle("/pages/", http.StripPrefix("/pages/", fs))
 
-	http.ListenAndServe(os.Getenv("port"), mux)
+	port := ":1616"
+	http.ListenAndServe(port, mux)
 }
 
 func AllowCrossOrigin(w http.ResponseWriter) {

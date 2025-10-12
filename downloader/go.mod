@@ -5,12 +5,10 @@ go 1.25.0
 require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/joho/godotenv v1.5.1
 	modernc.org/sqlite v1.38.2
 )
 
 require (
-	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

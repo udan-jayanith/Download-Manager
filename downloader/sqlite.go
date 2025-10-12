@@ -16,9 +16,10 @@ type sqlite struct {
 }
 
 func newSQLite() sqlite {
-	os.MkdirAll(os.Getenv("DBDir"), 0775)
+	dbDir := "./database"
+	os.Mkdir(dbDir, 0755)
 
-	db, err := sqlx.Connect("sqlite", filepath.Join(os.Getenv("DBDir"), "database.db"))
+	db, err := sqlx.Connect("sqlite", filepath.Join(dbDir, "database.db"))
 	if err != nil {
 		log.Println("Initialization function of Sqlite.")
 		log.Fatal(err)
