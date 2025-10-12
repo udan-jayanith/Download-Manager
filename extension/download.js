@@ -272,7 +272,9 @@ function getFileExtensionNameFromFileName(filename) {
 }
 
 chrome.downloads.onCreated.addListener((downloadItem) => {
-	if (downloadItem.byExtensionId != undefined || allowedDownloads.has(downloadItem.url)) {
+	if (downloadItem.state != 'in_progress') {
+		return
+	} else if (downloadItem.byExtensionId != undefined || allowedDownloads.has(downloadItem.url)) {
 		allowedDownloads.delete(downloadItem.url)
 		return
 	}
