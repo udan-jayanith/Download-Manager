@@ -59,6 +59,7 @@ settings.mediaTypes = {
 		mkv: true,
 		ogg: true,
 		ts: true,
+		m3u8: true,
 	},
 	image: {
 		apng: true,
